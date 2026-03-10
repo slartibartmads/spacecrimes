@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Combat Test</title>
+</head>
+<body>
+  <h1>Combat System Test</h1>
+  <pre id="output"></pre>
+  
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+  <script>
+    const output = document.getElementById('output');
+    let log = '';
+    
+    function testLog(msg) {
+      log += msg + '\n';
+      output.textContent = log;
+    }
+    
+    // Test 1: Pirate type rolling
+    testLog('=== Test 1: Pirate Type Rolling ===');
+    
+    const testState = createInitialState();
+    testState.player.cargo.narcotics = 50; // Add contraband
+    
+    const lowContraband = 300;
+    const medContraband = 1500;
+    const highContraband = 3000;
+    
+    testLog(`Low contraband (${lowContraband}cr):`);
+    const p1 = rollPirateType(lowContraband);
+    testLog(`  - ${p1.name} (${p1.hullMin}-${p1.hullMax} hull)`);
+    
+    testLog(`Med contraband (${medContraband}cr):`);
+    const p2 = rollPirateType(medContraband);
+    testLog(`  - ${p2.name} (${p2.hullMin}-${p2.hullMax} hull)`);
+    
+    testLog(`High contraband (${highContraband}cr):`);
+    const p3 = rollPirateType(highContraband);
+    testLog(`  - ${p3.name} (${p3.hullMin}-${p3.hullMax} hull)`);
+    
+    // Test 2: Combat initiation
+    testLog('\n=== Test 2: Combat Initiation ===');
+    const combat = initiateCombat(testState);
+    testLog(`Pirate: ${combat.pirateName} [${combat.pirateTypeName}]`);
+    testLog(`Hull: ${combat.pirateHull}/${combat.pirateHullMax}`);
+    testLog(`Rounds: ${combat.maxRounds}`);
+    testLog(`Flavor: ${combat.pirateFlavorText}`);
+    
+    // Test 3: Combat round
+    testLog('\n=== Test 3: Combat Round (Attack) ===');
+    let state = testState;
+    let combatState = combat;
+    
+    const result = resolveCombatRound(state, combatState, 'attack');
+    state = result.state;
+    combatState = result.combat;
+    
+    testLog(`Player hull: ${state.player.hull}`);
+    testLog(`Pirate hull: ${combatState.pirateHull}`);
+    testLog(`Combat log:\n${combatState.combatLog[0]}`);
+    
+    testLog('\n=== All Tests Passed! ===');
+  </script>
+</body>
+</html>

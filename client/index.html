@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPACECRIMES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="modal-overlay" style="display: flex; align-items: center; justify-content: center;">
+    <div class="modal" style="display: block;">
+      <h1>SPACE CRIMES</h1>
+      <h3>MULTIPLAYER EDITION</h3>
+      <p>Enter your username to join the shared universe:</p>
+      <input type="text" id="username-input" placeholder="Username" maxlength="20" style="width: 100%; padding: 8px; margin: 10px 0; font-family: 'Source Code Pro', monospace;">
+      <div class="modal-buttons">
+        <button id="join-btn">JOIN GAME</button>
+      </div>
+      <p id="login-error" class="danger" style="display: none;"></p>
+    </div>
+  </div>
+
+  <div id="app" style="display: none;">
+    <!-- STATUS BAR -->
+    <div id="status-bar" class="panel">
+      <div id="status-left">
+        <span>PLAYER: <span id="status-username">---</span></span>
+        <span>CREDITS: <span id="status-credits">500</span>cr</span>
+        <span>HULL: <span id="status-hull">100</span>%</span>
+        <span>CARGO: <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span></span>
+        <span id="status-bounty" style="display: none; color: #FF5A41;">BOUNTY: <span id="status-bounty-amount">0</span>cr</span>
+      </div>
+      <div id="status-right">
+        <span>TICK <span id="status-tick">0</span> - NEXT: <span id="tick-timer">--s</span></span>
+      </div>
+    </div>
+
+    <!-- MAP PANEL -->
+    <div id="map-panel" class="panel">
+      <h2>SYSTEM MAP</h2>
+      <svg id="map-svg" viewBox="0 0 600 600">
+        <!-- Routes rendered first (behind stations) -->
+        <g id="routes-layer"></g>
+        <!-- Stations rendered on top -->
+        <g id="stations-layer"></g>
+        <!-- Other players shown as dots -->
+        <g id="players-layer"></g>
+      </svg>
+    </div>
+
+    <!-- STATION PANEL -->
+    <div id="station-panel" class="panel">
+      <h2 id="station-name">DOCKED AT: ---</h2>
+      <p id="station-description" class="station-description">---</p>
+      
+      <!-- Commodities Table -->
+      <h3>COMMODITIES</h3>
+      <table id="commodity-table">
+        <thead>
+          <tr>
+            <th>NAME</th>
+            <th>PRICE</th>
+            <th>HAVE</th>
+            <th>BUY/SELL</th>
+          </tr>
+        </thead>
+        <tbody id="commodity-list">
+          <!-- Dynamically populated -->
+        </tbody>
+      </table>
+
+      <!-- Players Here Section -->
+      <div id="players-here-section" style="display: none;">
+        <h3>PLAYERS HERE</h3>
+        <div id="players-here-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Scanner Data -->
+      <div id="scanner-data" style="display: none;">
+        <h3>SCANNER DATA - ADJACENT STATIONS</h3>
+        <div id="scanner-content">
+          <!-- Dynamically populated when scanner is owned -->
+        </div>
+      </div>
+
+      <!-- Repair & Desperate Work Section -->
+      <div id="station-actions">
+        <button id="repair-btn">REPAIR HULL (---cr)</button>
+        <button id="desperate-work-btn" class="warning" onclick="handleDesperateWork()">
+          DESPERATE MEASURES (5-15cr)
+        </button>
+      </div>
+
+      <!-- Upgrades -->
+      <h3>UPGRADES</h3>
+      <div id="upgrade-list">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+
+    <!-- LEADERBOARD PANEL -->
+    <div id="leaderboard-panel" class="panel">
+      <h3>ONLINE PLAYERS: <span id="player-count">0</span></h3>
+      <div id="leaderboard">
+        <h4>LEADERBOARD</h4>
+        <div id="leaderboard-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      <div id="most-wanted" style="margin-top: 20px;">
+        <h4>MOST WANTED</h4>
+        <div id="most-wanted-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY LOG (merged event log + activity feed) -->
+    <div id="activity-log" class="panel">
+      <h3>ACTIVITY LOG</h3>
+      <div id="activity-log-content">
+        <!-- Combined event log and activity feed -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay"></div>
+
+  <!-- Combat Modal -->
+  <div id="combat-modal" class="modal">
+    <h2 id="combat-title">PIRATE ENCOUNTER!</h2>
+    <p id="combat-description">Pirates have intercepted your ship!</p>
+    
+    <!-- Hull Status -->
+    <div id="combat-hulls">
+      <div>YOUR HULL: <span id="combat-player-hull">100</span></div>
+      <div><span id="combat-enemy-label">PIRATE</span>: <span id="combat-pirate-hull">50</span></div>
+    </div>
+    
+    <!-- Combat Log -->
+    <div id="combat-log-container">
+      <div id="combat-log"></div>
+    </div>
+    
+    <!-- Loot Section (hidden until victory) -->
+    <div id="combat-loot" style="display: none;">
+      <p id="loot-description"></p>
+      <div class="modal-buttons">
+        <button id="loot-take">TAKE LOOT</button>
+        <button id="loot-leave">LEAVE IT</button>
+      </div>
+    </div>
+    
+    <!-- Combat Action Buttons -->
+    <div class="modal-buttons" id="combat-actions">
+      <button id="combat-attack">ATTACK</button>
+      <button id="combat-defend">DEFEND</button>
+      <button id="combat-bribe">BRIBE (<span id="bribe-cost">---</span>cr)</button>
+      <button id="combat-flee">FLEE (risky!)</button>
+      <button id="combat-surrender" style="display: none;">SURRENDER (lose cargo)</button>
+    </div>
+    
+    <!-- Continue Button (shown after combat resolves) -->
+    <div class="modal-buttons" id="combat-continue-section" style="display: none;">
+      <button id="combat-continue">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- Inspection Modal -->
+  <div id="inspection-modal" class="modal">
+    <h2 class="warning">CUSTOMS INSPECTION!</h2>
+    <p id="inspection-description">Contraband detected!</p>
+    <div class="modal-buttons">
+      <button id="inspection-pay">PAY FINE (<span id="fine-cost">---</span>cr)</button>
+      <button id="inspection-dump">DUMP CARGO</button>
+      <button id="inspection-resist">RESIST</button>
+    </div>
+  </div>
+
+  <!-- Death Modal -->
+  <div id="death-modal" class="modal">
+    <h2 class="danger">SHIP DESTROYED!</h2>
+    <p id="death-stats"><!-- Stats populated dynamically --></p>
+    <div class="modal-buttons">
+      <button id="death-respawn">RESPAWN (<span id="respawn-cost">---</span>cr)</button>
+      <button id="death-gameover">GAME OVER</button>
+    </div>
+  </div>
+
+  <!-- Travel Warning Modal -->
+  <div id="travel-warning-modal" class="modal">
+    <h2 class="warning">TRAVEL WARNING!</h2>
+    <p id="travel-warning-text"><!-- Warning text --></p>
+    <div class="modal-buttons">
+      <button id="travel-proceed">PROCEED</button>
+      <button id="travel-dump">DUMP CONTRABAND</button>
+      <button id="travel-cancel">CANCEL</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
