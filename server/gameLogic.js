@@ -1284,19 +1284,29 @@ export function calculateNetWorth(player, markets) {
   
   // Add cargo value
   const currentStation = STATIONS.find(s => s.id === player.location);
-  Object.keys(player.cargo).forEach(commodityId => {
-    const quantity = player.cargo[commodityId];
-    const price = markets[currentStation.id][commodityId].currentPrice;
-    worth += quantity * price;
-  });
+  if (currentStation && markets && markets[currentStation.id]) {
+    Object.keys(player.cargo).forEach(commodityId => {
+      const quantity = player.cargo[commodityId];
+      if (markets[currentStation.id][commodityId]) {
+        const price = markets[currentStation.id][commodityId].currentPrice;
+        worth += quantity * price;
+      }
+    });
+  }
   
-  // Add upgrade value
+  // Add upgrade value (sum of costs for all tiers purchased)
   Object.keys(player.upgrades).forEach(upgradeId => {
+    const tier = player.upgrades[upgradeId];
     const upgrade = UPGRADES.find(u => u.id === upgradeId);
-    if (upgrade) worth += upgrade.cost;
+    if (upgrade && tier > 0) {
+      // Calculate total cost for all tiers: baseCost * (multiplier^0 + multiplier^1 + ... + multiplier^(tier-1))
+      for (let i = 0; i < tier; i++) {
+        worth += upgrade.baseCost * Math.pow(upgrade.multiplier, i);
+      }
+    }
   });
   
-  return worth;
+  return Math.round(worth);
 }
 
 // === PVP HELPER FUNCTIONS ===

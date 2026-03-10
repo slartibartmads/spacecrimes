@@ -560,6 +560,12 @@ function handleCombatAction(socket, data, callback, io) {
   
   // PVP combat: wait for both players' actions
   if (isPvp) {
+    // Bribe is not allowed in PVP combat
+    if (action === 'bribe') {
+      callback({ success: false, error: 'Cannot bribe another player' });
+      return;
+    }
+    
     const opponent = getPlayer(player.activeCombat.opponentSocketId);
     
     console.log(`Opponent found: ${!!opponent}, Opponent in combat: ${!!(opponent && opponent.activeCombat)}`);
@@ -1188,6 +1194,7 @@ function handleAttackPlayer(socket, data, callback, io) {
   updatePlayer(targetSocketId, defender);
   
   // Add activity
+  const station = STATIONS.find(s => s.id === attacker.location);
   addActivity({
     type: 'pvp_attack',
     playerName: attacker.name,

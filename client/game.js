@@ -624,54 +624,24 @@ async function updateLeaderboard() {
     name.textContent = entry.name;
     div.appendChild(name);
     
-    const credits = document.createElement('span');
-    credits.classList.add('leaderboard-credits');
-    credits.textContent = `${entry.netWorth}cr`;
-    div.appendChild(credits);
+    // Show bounty right after name if they have one
+    if (entry.bounty && entry.bounty >= 1000) {
+      const bounty = document.createElement('span');
+      bounty.style.cssText = 'color: #FF5A41; font-size: 11px; margin-left: 8px;';
+      bounty.textContent = `[${entry.bounty}cr]`;
+      div.appendChild(bounty);
+    }
+    
+    const worth = document.createElement('span');
+    worth.classList.add('leaderboard-credits');
+    worth.textContent = `${entry.netWorth}cr`;
+    div.appendChild(worth);
     
     leaderboardList.appendChild(div);
   });
   
   // Update player count
   document.getElementById('player-count').textContent = leaderboard.length;
-  
-  // Render Most Wanted list
-  const mostWantedList = document.getElementById('most-wanted-list');
-  mostWantedList.innerHTML = '';
-  
-  // Use gameState.players if available, otherwise use allPlayers
-  const playersList = (gameState && gameState.players) ? gameState.players : allPlayers;
-  
-  // Filter and sort players by bounty (only show players with bounty >= 1000cr)
-  const playersWithBounties = playersList
-    .filter(p => p != null && p.reputation && p.reputation.currentBounty >= 1000)
-    .sort((a, b) => b.reputation.currentBounty - a.reputation.currentBounty)
-    .slice(0, 5); // Top 5
-  
-  if (playersWithBounties.length === 0) {
-    mostWantedList.innerHTML = '<div style="color: #666; font-size: 12px;">No active bounties</div>';
-  } else {
-    playersWithBounties.forEach((player, index) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'padding: 4px 0; border-bottom: 1px solid #333;';
-      
-      const rank = document.createElement('span');
-      rank.style.cssText = 'color: #FF5A41; font-weight: bold;';
-      rank.textContent = `#${index + 1} `;
-      div.appendChild(rank);
-      
-      const name = document.createElement('span');
-      name.textContent = `${player.name}: `;
-      div.appendChild(name);
-      
-      const bounty = document.createElement('span');
-      bounty.style.color = '#17D773';
-      bounty.textContent = `${player.reputation.currentBounty}cr`;
-      div.appendChild(bounty);
-      
-      mostWantedList.appendChild(div);
-    });
-  }
 }
 
 function renderActivityFeed() {
@@ -837,6 +807,14 @@ function showCombatModal(combat) {
   document.getElementById('combat-defend').onclick = () => handleCombatAction('defend');
   document.getElementById('combat-bribe').onclick = () => handleCombatAction('bribe');
   document.getElementById('combat-flee').onclick = () => handleCombatAction('flee');
+  
+  // Show/hide bribe button (only for NPCs, not PVP)
+  const bribeBtn = document.getElementById('combat-bribe');
+  if (isPvp) {
+    bribeBtn.style.display = 'none';
+  } else {
+    bribeBtn.style.display = 'inline-block';
+  }
   
   // Show/hide surrender button based on enemy type (only for cops, not PVP)
   const surrenderBtn = document.getElementById('combat-surrender');
