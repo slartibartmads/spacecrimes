@@ -105,6 +105,7 @@ function handleConnected(player, state) {
   renderMap();
   renderStation();
   renderStatus();
+  renderPlayersHere(); // Show other players at current location
   renderLeaderboard();
   
   addLog(`Welcome to Space Drugwars, ${player.name}!`);
@@ -127,6 +128,7 @@ function handlePlayerUpdate(player) {
   playerState = player;
   renderStatus();
   renderStation();
+  renderPlayersHere(); // Update players here when our location changes
 }
 
 function handleOtherPlayerUpdate(data) {
@@ -146,6 +148,9 @@ function handleOtherPlayerUpdate(data) {
   
   // Re-render map to show updated positions
   renderMap();
+  
+  // Re-render players here list in case they moved to/from our station
+  renderPlayersHere();
 }
 
 function handleTick(data) {
@@ -716,6 +721,7 @@ async function attemptTravel(destination) {
       // Modal will be shown
     } else {
       renderMap(); // Update player location on map
+      renderPlayersHere(); // Update list of players at new location
     }
   } catch (error) {
     console.error('Travel error:', error);

@@ -210,6 +210,7 @@ export function getPublicPlayerInfo(socketId) {
     hull: player.hull,
     hullMax: player.hullMax,
     cargo: player.cargo,
+    cargoUsed: player.cargoUsed,
     cargoMax: player.cargoMax,
     upgrades: player.upgrades,
     reputation: player.reputation

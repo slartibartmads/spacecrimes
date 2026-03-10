@@ -8,6 +8,7 @@ import {
   addActivity,
   getLeaderboard,
   getAllPublicPlayerInfo,
+  getPublicPlayerInfo,
   markPlayerTraveled,
   hasPlayerTraveled
 } from './gameState.js';
@@ -152,7 +153,7 @@ function handleJoin(socket, data, callback, io) {
   
   // Broadcast to all other players that new player joined
   socket.broadcast.emit('playerJoined', {
-    player: getPlayer(socket.id)
+    player: getPublicPlayerInfo(socket.id)
   });
   
   // Add to activity feed
@@ -211,7 +212,7 @@ function handleBuy(socket, data, callback, io) {
     io.emit('marketUpdate', { markets: result.markets });
     io.emit('playerUpdate', { 
       socketId: socket.id, 
-      player: getPlayer(socket.id) 
+      player: getPublicPlayerInfo(socket.id) 
     });
     io.emit('activityUpdate', { activities: state.recentActivity });
     
@@ -267,7 +268,7 @@ function handleSell(socket, data, callback, io) {
   io.emit('marketUpdate', { markets: result.markets });
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: state.recentActivity });
   
@@ -317,7 +318,7 @@ function handleTravel(socket, data, callback, io) {
     // Broadcast position update to other players
     io.emit('playerUpdate', { 
       socketId: socket.id, 
-      player: getPlayer(socket.id) 
+      player: getPublicPlayerInfo(socket.id) 
     });
     
     // Send combat encounter to player
@@ -347,7 +348,7 @@ function handleTravel(socket, data, callback, io) {
     // Broadcast position update to other players
     io.emit('playerUpdate', { 
       socketId: socket.id, 
-      player: getPlayer(socket.id) 
+      player: getPublicPlayerInfo(socket.id) 
     });
     
     // Send combat encounter to player
@@ -378,7 +379,7 @@ function handleTravel(socket, data, callback, io) {
     // Broadcast position update to other players
     io.emit('playerUpdate', { 
       socketId: socket.id, 
-      player: getPlayer(socket.id) 
+      player: getPublicPlayerInfo(socket.id) 
     });
     
     // Send inspection to player
@@ -417,7 +418,7 @@ function handleTravel(socket, data, callback, io) {
   // Broadcast updates
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
@@ -461,7 +462,7 @@ function handleBuyUpgrade(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
@@ -493,7 +494,7 @@ function handleRepair(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   
   callback({ 
@@ -524,7 +525,7 @@ function handleDesperateWork(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   
   callback({ 
@@ -889,7 +890,7 @@ function handleAcceptLoot(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
@@ -959,7 +960,7 @@ function handleInspectionAction(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
@@ -1003,7 +1004,7 @@ function handleRespawn(socket, data, callback, io) {
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
-    player: getPlayer(socket.id) 
+    player: getPublicPlayerInfo(socket.id) 
   });
   io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
