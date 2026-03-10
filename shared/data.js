@@ -642,7 +642,10 @@ const CONSTANTS = {
   HULL_REPAIR_COST_PER_POINT: 5,
   
   DESPERATE_WORK_PAYOUT: { min: 5, max: 15 },
-  DESPERATE_WORK_THRESHOLD: 100
+  DESPERATE_WORK_THRESHOLD: 100,
+  
+  // Toll system - base toll + percentage of cargo value
+  TOLL_CARGO_PERCENTAGE: 0.05  // 5% of cargo value added to base toll
 };
 
 // Export for ES modules (Node.js server)

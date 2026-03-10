@@ -300,7 +300,8 @@ function handleTravel(socket, data, callback, io) {
     return;
   }
   
-  const result = travel(player, destination);
+  const state = getServerState();
+  const result = travel(player, destination, state.markets);
   
   if (!result.success) {
     callback({ success: false, error: result.error });

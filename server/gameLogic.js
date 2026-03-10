@@ -425,7 +425,7 @@ export function sellCommodity(player, markets, commodityId, quantity) {
 
 // === TRAVEL ===
 
-export function travel(player, destinationId) {
+export function travel(player, destinationId, markets = {}) {
   const newPlayer = deepClone(player);
   
   // Validation
@@ -447,8 +447,8 @@ export function travel(player, destinationId) {
     return { success: false, error: "No route found" };
   }
   
-  // Deduct toll fee if route has one
-  const tollFee = route.tollFee || 0;
+  // Calculate dynamic toll fee (base + cargo percentage)
+  const tollFee = calculateTollFee(route, newPlayer, markets);
   if (newPlayer.credits < tollFee) {
     return { success: false, error: `Not enough credits for toll (need ${tollFee}cr)` };
   }
@@ -1250,6 +1250,19 @@ export function calculateTotalCargoValue(player, markets) {
   });
   
   return total;
+}
+
+/**
+ * Calculate toll fee for a route based on base toll + cargo value percentage
+ */
+export function calculateTollFee(route, player, markets) {
+  const baseToll = route.tollFee || 0;
+  if (baseToll === 0) return 0;
+  
+  const cargoValue = calculateTotalCargoValue(player, markets);
+  const cargoFee = Math.floor(cargoValue * CONSTANTS.TOLL_CARGO_PERCENTAGE);
+  
+  return baseToll + cargoFee;
 }
 
 export function removeAllContraband(player) {

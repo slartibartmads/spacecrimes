@@ -18,6 +18,34 @@ function getStationName(stationId) {
   return station ? station.name : stationId;
 }
 
+function calculateCargoValue() {
+  if (!playerState || !gameState || !gameState.markets) return 0;
+  
+  let total = 0;
+  const currentMarket = gameState.markets[playerState.location];
+  if (!currentMarket) return 0;
+  
+  Object.keys(playerState.cargo).forEach(commodityId => {
+    const quantity = playerState.cargo[commodityId];
+    const marketData = currentMarket[commodityId];
+    if (marketData) {
+      total += quantity * marketData.currentPrice;
+    }
+  });
+  
+  return total;
+}
+
+function calculateTollFee(route) {
+  const baseToll = route.tollFee || 0;
+  if (baseToll === 0) return 0;
+  
+  const cargoValue = calculateCargoValue();
+  const cargoFee = Math.floor(cargoValue * CONSTANTS.TOLL_CARGO_PERCENTAGE);
+  
+  return baseToll + cargoFee;
+}
+
 // === INITIALIZATION ===
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -128,6 +156,7 @@ function handlePlayerUpdate(player) {
   playerState = player;
   renderStatus();
   renderStation();
+  renderMap(); // Update map to refresh toll labels based on new cargo
   renderPlayersHere(); // Update players here when our location changes
 }
 
@@ -258,6 +287,8 @@ function renderMap() {
       const midX = (from.position.x + to.position.x) / 2;
       const midY = (from.position.y + to.position.y) / 2;
       
+      const actualToll = calculateTollFee(route);
+      
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('x', midX);
       label.setAttribute('y', midY);
@@ -266,7 +297,7 @@ function renderMap() {
       label.setAttribute('font-size', '10');
       label.setAttribute('font-weight', 'bold');
       label.setAttribute('font-family', 'Source Code Pro, monospace');
-      label.textContent = `${route.tollFee}cr`;
+      label.textContent = `${actualToll}cr`;
       routesLayer.appendChild(label);
     }
   });
@@ -482,7 +513,7 @@ function renderPlayersHere() {
   
   playersHere.forEach(player => {
     const playerDiv = document.createElement('div');
-    playerDiv.style.cssText = 'background: #1a1a1a; padding: 8px; margin: 5px 0; border: 1px solid #333;';
+    playerDiv.style.cssText = 'background: rgba(23, 215, 115, 0.05); padding: 8px; margin: 5px 0; border: 1px solid rgba(23, 215, 115, 0.3);';
     
     // Player name and bounty
     const nameSpan = document.createElement('span');
