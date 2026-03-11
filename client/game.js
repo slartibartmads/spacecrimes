@@ -817,6 +817,15 @@ function renderStatus() {
   document.getElementById('status-credits').textContent = playerState.credits;
   document.getElementById('status-hull').textContent = playerState.hull;
   
+  // Calculate damage (base 25-40 + weapon upgrades * 5)
+  const weaponTier = playerState.upgrades.weapon || 0;
+  const baseDamageMin = CONSTANTS.ATTACK_DAMAGE_MIN;
+  const baseDamageMax = CONSTANTS.ATTACK_DAMAGE_MAX;
+  const weaponBonus = weaponTier * 5;
+  const damageMin = baseDamageMin + weaponBonus;
+  const damageMax = baseDamageMax + weaponBonus;
+  document.getElementById('status-damage').textContent = `${damageMin}-${damageMax}`;
+  
   const cargoUsed = Object.values(playerState.cargo).reduce((sum, qty) => sum + qty, 0);
   document.getElementById('status-cargo').textContent = cargoUsed;
   document.getElementById('status-cargo-max').textContent = playerState.cargoMax;
