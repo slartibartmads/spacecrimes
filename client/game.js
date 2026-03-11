@@ -363,12 +363,12 @@ function renderMap() {
     // Add location pin if this is the current location (after text so it renders on top)
     if (station.id === playerState.location) {
       const pinSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      pinSvg.setAttribute('width', '16');
-      pinSvg.setAttribute('height', '24');
+      pinSvg.setAttribute('width', '48');
+      pinSvg.setAttribute('height', '72');
       pinSvg.setAttribute('viewBox', '0 0 16 24');
       // Position pin with bottom center at station position
-      pinSvg.setAttribute('x', station.position.x - 8);
-      pinSvg.setAttribute('y', station.position.y - 24);
+      pinSvg.setAttribute('x', station.position.x - 24);
+      pinSvg.setAttribute('y', station.position.y - 72);
       pinSvg.setAttribute('overflow', 'visible');
       
       const pinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
