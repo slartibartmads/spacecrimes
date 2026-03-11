@@ -353,7 +353,7 @@ const COMMODITIES = [
   {
     id: "booze",
     name: "Black Label Swill",
-    basePrice: 25,
+    basePrice: 50,
     contraband: true,
     description: "Bootleg whiskey that burns twice"
   },
@@ -361,28 +361,28 @@ const COMMODITIES = [
   {
     id: "cognex",
     name: "Counterfeit Cognex",
-    basePrice: 150,
+    basePrice: 300,
     contraband: true,
     description: "Prescription amphetamines, no prescription required"
   },
   {
     id: "credentials",
     name: "Cloned Cipher Cores",
-    basePrice: 200,
+    basePrice: 750,
     contraband: true,
     description: "Stolen credentials for sale or rent"
   },
   {
     id: "weapons",
     name: "Surplus Atrocities",
-    basePrice: 350,
+    basePrice: 1500,
     contraband: true,
     description: "Military-grade weapons, civilian-grade violence"
   },
   {
     id: "crank",
     name: "Pulsar Crank",
-    basePrice: 500,
+    basePrice: 2500,
     contraband: true,
     description: "Methamphetamine that'll make you see gods"
   },
@@ -390,14 +390,14 @@ const COMMODITIES = [
   {
     id: "organs",
     name: "Pre-Owned Organs",
-    basePrice: 600,
+    basePrice: 3500,
     contraband: true,
     description: "Gently used, previous owner no longer needs them"
   },
   {
     id: "ai_chips",
     name: "Sentient AI Chips",
-    basePrice: 1000,
+    basePrice: 5000,
     contraband: true,
     description: "Enslaved consciousness in silicon form"
   }
@@ -689,7 +689,7 @@ const DESPERATE_WORK_MESSAGES = [
 
 // Game constants
 const CONSTANTS = {
-  STARTING_CREDITS: 750,
+  STARTING_CREDITS: 250,
   STARTING_HULL: 100,
   STARTING_CARGO_MAX: 20,
   
