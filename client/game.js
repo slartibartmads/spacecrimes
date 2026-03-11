@@ -657,7 +657,7 @@ function renderStation() {
   // Repair button
   const repairBtn = document.getElementById('repair-btn');
   const repairCost = Math.round((playerState.hullMax - playerState.hull) * 2);
-  repairBtn.textContent = `REPAIR HULL (${repairCost}cr)`;
+  repairBtn.textContent = `REPAIR SHIELDS (${repairCost}cr)`;
   repairBtn.disabled = playerState.hull >= playerState.hullMax || playerState.credits < repairCost;
   repairBtn.onclick = handleRepair;
   
@@ -969,7 +969,7 @@ async function handleBuyUpgrade(upgradeId) {
 async function handleRepair() {
   try {
     await MP.repairHull();
-    addLog('Hull repaired');
+    addLog('Shields repaired');
   } catch (error) {
     addLog(error.message, 'danger');
   }
