@@ -6,13 +6,22 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "nodemon server.js",
+    "dev:watch": "node --watch server.js"
   },
-  "keywords": ["game", "multiplayer", "trading", "space"],
+  "keywords": [
+    "game",
+    "multiplayer",
+    "trading",
+    "space"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

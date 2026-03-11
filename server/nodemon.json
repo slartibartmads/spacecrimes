@@ -1,0 +1,19 @@
+{
+  "watch": [
+    "server.js",
+    "gameLogic.js",
+    "gameState.js",
+    "socketHandlers.js",
+    "tickSystem.js",
+    "../shared/data.js"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/**",
+    "*.log"
+  ],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 500
+}
