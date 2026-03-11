@@ -774,7 +774,7 @@ function renderPlayersHere() {
   
   playersHere.forEach(player => {
     const playerDiv = document.createElement('div');
-    playerDiv.style.cssText = 'background: rgba(23, 215, 115, 0.05); padding: 8px; margin: 5px 0; border: 1px solid rgba(23, 215, 115, 0.3);';
+    playerDiv.style.cssText = 'background: rgba(23, 215, 115, 0.05); padding: 8px; margin: 5px 0; border: 1px solid rgba(23, 215, 115, 0.3); display: flex; justify-content: space-between; align-items: center;';
     
     // Player name and bounty
     const nameSpan = document.createElement('span');
@@ -789,37 +789,16 @@ function renderPlayersHere() {
     }
     
     playerDiv.appendChild(nameSpan);
-    playerDiv.appendChild(document.createElement('br'));
-    
-    // Basic info
-    const infoSpan = document.createElement('span');
-    infoSpan.style.fontSize = '12px';
-    infoSpan.textContent = `Hull: ${player.hull}/${player.hullMax} | Cargo: ${player.cargoUsed || 0}/${player.cargoMax}`;
-    playerDiv.appendChild(infoSpan);
-    playerDiv.appendChild(document.createElement('br'));
-    
-    // Action buttons
-    const btnDiv = document.createElement('div');
-    btnDiv.style.marginTop = '5px';
-    
-    const scanBtn = document.createElement('button');
-    scanBtn.textContent = 'SCAN';
-    scanBtn.style.fontSize = '10px';
-    scanBtn.style.padding = '2px 8px';
-    scanBtn.onclick = () => scanPlayer(player.socketId);
-    btnDiv.appendChild(scanBtn);
     
     // Always show attack button - no safe zones for PVP
     const attackBtn = document.createElement('button');
     attackBtn.textContent = 'ATTACK';
     attackBtn.style.fontSize = '10px';
     attackBtn.style.padding = '2px 8px';
-    attackBtn.style.marginLeft = '5px';
     attackBtn.className = 'warning';
     attackBtn.onclick = () => attackPlayer(player.socketId, player.name);
-    btnDiv.appendChild(attackBtn);
+    playerDiv.appendChild(attackBtn);
     
-    playerDiv.appendChild(btnDiv);
     playersHereList.appendChild(playerDiv);
   });
 }
@@ -1196,19 +1175,25 @@ function showInspectionModal(inspectionState) {
 function showDeathModal() {
   addLog('Your ship was destroyed!', 'danger');
   
+  // Close combat modal if it's open
+  const combatModal = document.getElementById('combat-modal');
+  combatModal.style.display = 'none';
+  
   const modal = document.getElementById('death-modal');
   const overlay = document.getElementById('modal-overlay');
   const stats = document.getElementById('death-stats');
-  const respawnCost = document.getElementById('respawn-cost');
   
-  stats.textContent = `Net worth: ${playerState.credits}cr`;
-  respawnCost.textContent = CONSTANTS.RESPAWN_SHIP_COST;
+  // Check if player died in combat
+  const diedInCombat = playerState.activeCombat !== null;
   
-  // Set up event handlers
+  if (diedInCombat) {
+    stats.textContent = `You were destroyed in combat! You will respawn at a random station.`;
+  } else {
+    stats.textContent = `You will respawn at a random station.`;
+  }
+  
+  // Set up event handler
   document.getElementById('death-respawn').onclick = handleRespawn;
-  document.getElementById('death-gameover').onclick = () => {
-    window.location.reload();
-  };
   
   // Show modal
   overlay.style.display = 'block';
@@ -1353,18 +1338,6 @@ function closeDeathModal() {
 }
 
 // === PVP HANDLERS ===
-
-async function scanPlayer(targetSocketId) {
-  try {
-    const result = await MP.scanPlayer(targetSocketId);
-    const target = result.targetInfo;
-    
-    const msg = `SCAN: ${target.name} | Hull: ${target.hull}/${target.hullMax} | Cargo: ${target.cargoUsed}/${target.cargoMax} (${Math.round(target.cargoValue)}cr) | Bounty: ${target.reputation.currentBounty}cr`;
-    addLog(msg, 'info');
-  } catch (error) {
-    addLog(error.message, 'danger');
-  }
-}
 
 async function attackPlayer(targetSocketId, targetName) {
   if (!confirm(`Attack ${targetName}? This will initiate PVP combat!`)) {

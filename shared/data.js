@@ -599,7 +599,7 @@ const CONSTANTS = {
   BASE_INSPECTION_CHANCE: 0.30,
   INSPECTION_FINE_RATE: 0.50,
   
-  TICK_EVENT_CHANCE: 0.05,                     // 5% chance per tick (reduced from 7.5%)
+  TICK_EVENT_CHANCE: 0.025,                    // 2.5% chance per tick
   PRICE_DRIFT_RATE: 0.025,                     // Slower drift (was 0.05)
   
   PLAYER_BUY_PRICE_INCREASE: 0.04,

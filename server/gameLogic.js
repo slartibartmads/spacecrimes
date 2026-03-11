@@ -940,7 +940,7 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
   
   // Calculate dynamic toll fee (base + cargo percentage)
   const tollFee = calculateTollFee(route, newPlayer, markets);
-  if (newPlayer.credits < tollFee) {
+  if (tollFee > 0 && newPlayer.credits < tollFee) {
     return { success: false, error: `Not enough credits for toll (need ${tollFee}cr)` };
   }
   
@@ -1713,27 +1713,39 @@ export function checkDeath(player) {
 
 export function respawn(player) {
   const newPlayer = deepClone(player);
-  const nearestStation = findNearestStation(newPlayer.location);
   
-  const retainedCredits = Math.floor(newPlayer.credits * CONSTANTS.DEATH_CREDIT_RETENTION);
-  const finalCredits = Math.max(retainedCredits, CONSTANTS.RESPAWN_SHIP_COST);
+  // Respawn at a random station
+  const randomStation = STATIONS[Math.floor(Math.random() * STATIONS.length)];
   
-  if (finalCredits < CONSTANTS.RESPAWN_SHIP_COST) {
-    return { 
-      success: false, 
-      error: 'Game Over - Not enough credits to respawn',
-      gameOver: true 
-    };
+  // Check if player died in combat (activeCombat still exists)
+  const diedInCombat = newPlayer.activeCombat !== null;
+  
+  if (diedInCombat) {
+    // Killed in combat - respawn with starting credits
+    newPlayer.credits = CONSTANTS.STARTING_CREDITS;
+  } else {
+    // Died from other causes (e.g., desperate work) - use retention mechanic
+    const retainedCredits = Math.floor(newPlayer.credits * CONSTANTS.DEATH_CREDIT_RETENTION);
+    const finalCredits = Math.max(retainedCredits, CONSTANTS.RESPAWN_SHIP_COST);
+    
+    if (finalCredits < CONSTANTS.RESPAWN_SHIP_COST) {
+      return { 
+        success: false, 
+        error: 'Game Over - Not enough credits to respawn',
+        gameOver: true 
+      };
+    }
+    
+    newPlayer.credits = finalCredits - CONSTANTS.RESPAWN_SHIP_COST;
   }
   
-  newPlayer.credits = finalCredits - CONSTANTS.RESPAWN_SHIP_COST;
   newPlayer.hull = CONSTANTS.STARTING_HULL;
   newPlayer.hullMax = CONSTANTS.STARTING_HULL;
   newPlayer.cargoMax = CONSTANTS.STARTING_CARGO_MAX;
   newPlayer.cargoUsed = 0;
   newPlayer.cargo = {};
   newPlayer.upgrades = { cargo: 0, hull: 0, weapon: 0 };
-  newPlayer.location = nearestStation.id;
+  newPlayer.location = randomStation.id;
   newPlayer.activeCombat = null;
   
   // Void bounty on death (reset to 0)
@@ -1745,7 +1757,7 @@ export function respawn(player) {
     success: true,
     playerState: newPlayer, 
     gameOver: false, 
-    respawnLocation: nearestStation.name 
+    respawnLocation: randomStation.name 
   };
 }
 

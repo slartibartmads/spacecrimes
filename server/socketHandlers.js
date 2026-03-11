@@ -97,10 +97,6 @@ export function setupSocketHandlers(io) {
     });
     
     // PVP actions
-    socket.on('scanPlayer', (data, callback) => {
-      handleScanPlayer(socket, data, callback);
-    });
-    
     socket.on('attackPlayer', (data, callback) => {
       handleAttackPlayer(socket, data, callback, io);
     });
@@ -700,43 +696,83 @@ function handleCombatAction(socket, data, callback, io) {
         io.emit('playerUpdate', getAllPublicPlayerInfo());
         
       } else if (newCombat.outcome === 'defeat') {
-        // Attacker lost - handle death penalty and bounty reward
-        const pvpResult = handlePvpDefeat(newAttacker, newDefender);
+        // Check for mutual destruction (both died)
+        const mutualDestruction = newAttacker.hull <= 0 && newDefender.hull <= 0;
         
-        updatePlayer(defenderSocketId, pvpResult.defender);
-        
-        // Attacker gets death penalty
-        const deathCheck = checkDeath(pvpResult.attacker);
-        updatePlayer(attackerSocketId, deathCheck.playerState);
-        
-        // Add activity
-        const station = STATIONS.find(s => s.id === attackerPlayer.location);
-        const bountyMsg = pvpResult.bountyReward > 0 ? ` and claimed ${pvpResult.bountyReward}cr bounty` : '';
-        addActivity({
-          type: 'pvp_defeat',
-          playerName: defenderPlayer.name,
-          targetName: attackerPlayer.name,
-          bountyReward: pvpResult.bountyReward,
-          stationName: station.name,
-          message: `${defenderPlayer.name} defended against ${attackerPlayer.name}${bountyMsg}!`
-        });
-        
-        // Notify both players
-        io.to(defenderSocketId).emit('pvpVictory', {
-          defender: defenderPlayer.name,
-          bountyReward: pvpResult.bountyReward,
-          combatState: defenderCombat
-        });
-        
-        io.to(attackerSocketId).emit('combatResolved', {
-          playerState: getPlayer(attackerSocketId),
-          combatState: newCombat,
-          isDead: deathCheck.isDead
-        });
-        
-        // Broadcast updates
-        io.emit('activityUpdate', { activities: getServerState().recentActivity });
-        io.emit('playerUpdate', getAllPublicPlayerInfo());
+        if (mutualDestruction) {
+          // Both died - handle death for both players
+          const attackerDeath = checkDeath(newAttacker);
+          const defenderDeath = checkDeath(newDefender);
+          
+          updatePlayer(attackerSocketId, attackerDeath.playerState);
+          updatePlayer(defenderSocketId, defenderDeath.playerState);
+          
+          // Add activity
+          const station = STATIONS.find(s => s.id === attackerPlayer.location);
+          addActivity({
+            type: 'pvp_mutual',
+            playerName: attackerPlayer.name,
+            targetName: defenderPlayer.name,
+            stationName: station.name,
+            message: `${attackerPlayer.name} and ${defenderPlayer.name} destroyed each other in combat!`
+          });
+          
+          // Notify both players of death
+          io.to(attackerSocketId).emit('combatResolved', {
+            playerState: getPlayer(attackerSocketId),
+            combatState: newCombat,
+            isDead: true
+          });
+          
+          io.to(defenderSocketId).emit('combatResolved', {
+            playerState: getPlayer(defenderSocketId),
+            combatState: defenderCombat,
+            isDead: true
+          });
+          
+          // Broadcast updates
+          io.emit('activityUpdate', { activities: getServerState().recentActivity });
+          io.emit('playerUpdate', getAllPublicPlayerInfo());
+          
+        } else {
+          // Attacker lost - handle death penalty and bounty reward
+          const pvpResult = handlePvpDefeat(newAttacker, newDefender);
+          
+          updatePlayer(defenderSocketId, pvpResult.defender);
+          
+          // Attacker gets death penalty
+          const deathCheck = checkDeath(pvpResult.attacker);
+          updatePlayer(attackerSocketId, deathCheck.playerState);
+          
+          // Add activity
+          const station = STATIONS.find(s => s.id === attackerPlayer.location);
+          const bountyMsg = pvpResult.bountyReward > 0 ? ` and claimed ${pvpResult.bountyReward}cr bounty` : '';
+          addActivity({
+            type: 'pvp_defeat',
+            playerName: defenderPlayer.name,
+            targetName: attackerPlayer.name,
+            bountyReward: pvpResult.bountyReward,
+            stationName: station.name,
+            message: `${defenderPlayer.name} defended against ${attackerPlayer.name}${bountyMsg}!`
+          });
+          
+          // Notify both players
+          io.to(defenderSocketId).emit('pvpVictory', {
+            defender: defenderPlayer.name,
+            bountyReward: pvpResult.bountyReward,
+            combatState: defenderCombat
+          });
+          
+          io.to(attackerSocketId).emit('combatResolved', {
+            playerState: getPlayer(attackerSocketId),
+            combatState: newCombat,
+            isDead: deathCheck.isDead
+          });
+          
+          // Broadcast updates
+          io.emit('activityUpdate', { activities: getServerState().recentActivity });
+          io.emit('playerUpdate', getAllPublicPlayerInfo());
+        }
         
       } else if (newCombat.outcome === 'escaped') {
         // Combat ended via flee or bribe - clear combat state for both players
@@ -1033,42 +1069,6 @@ function handleDisconnect(socket, io) {
   } else {
     console.log(`Client disconnected: ${socket.id}`);
   }
-}
-
-/**
- * Handle scan player
- */
-function handleScanPlayer(socket, data, callback) {
-  const { targetSocketId } = data;
-  const player = getPlayer(socket.id);
-  const target = getPlayer(targetSocketId);
-  
-  if (!player) {
-    return callback({ success: false, error: 'Player not found' });
-  }
-  
-  if (!target) {
-    return callback({ success: false, error: 'Target not found' });
-  }
-  
-  // Calculate target's cargo value
-  const cargoValue = calculateTotalCargoValue(target, getServerState().markets);
-  
-  callback({
-    success: true,
-    targetInfo: {
-      name: target.name,
-      location: target.location,
-      credits: target.credits,
-      hull: target.hull,
-      hullMax: target.hullMax,
-      cargoUsed: target.cargoUsed,
-      cargoMax: target.cargoMax,
-      cargoValue: cargoValue,
-      upgrades: target.upgrades,
-      reputation: target.reputation
-    }
-  });
 }
 
 /**

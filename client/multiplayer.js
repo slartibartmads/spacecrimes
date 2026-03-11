@@ -424,26 +424,6 @@ export function getTickInfo() {
 }
 
 /**
- * Scan player - get detailed info about another player
- */
-export function scanPlayer(targetSocketId) {
-  return new Promise((resolve, reject) => {
-    if (!socket || !connected) {
-      reject(new Error('Not connected to server'));
-      return;
-    }
-    
-    socket.emit('scanPlayer', { targetSocketId }, (response) => {
-      if (response && response.success) {
-        resolve(response);
-      } else {
-        reject(new Error(response?.error || 'Unknown error'));
-      }
-    });
-  });
-}
-
-/**
  * Attack player - initiate PVP combat
  */
 export function attackPlayer(targetSocketId) {
