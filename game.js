@@ -433,27 +433,6 @@ function resolveCombatRound(state, combatState, action) {
       logEntry += randomChoice(COMBAT_FLAVOR.attack_return) + ` (-${pirateDamage} your hull)\n`;
     }
     
-  } else if (action === "defend") {
-    // Player defends
-    const playerDamage = randomInt(CONSTANTS.DEFEND_DAMAGE_MIN, CONSTANTS.DEFEND_DAMAGE_MAX);
-    newCombat.pirateHull -= playerDamage;
-    logEntry += randomChoice(COMBAT_FLAVOR.defend_chip) + ` (-${playerDamage} pirate hull)\n`;
-    
-    // Pirate attacks but reduced damage
-    if (newCombat.pirateHull > 0) {
-      let pirateDamage = randomInt(CONSTANTS.DEFEND_DAMAGE_TAKEN_MIN, CONSTANTS.DEFEND_DAMAGE_TAKEN_MAX);
-      
-      // Apply damage reduction from upgrades
-      let damageReduction = 0;
-      if (newState.player.upgrades.hull) damageReduction += 0.25;
-      if (newState.player.upgrades.shields) damageReduction += 0.40;
-      
-      pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
-      newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
-      
-      logEntry += randomChoice(COMBAT_FLAVOR.defend_success) + ` (-${pirateDamage} your hull)\n`;
-    }
-    
   } else if (action === "bribe") {
     const bribeCost = randomInt(CONSTANTS.BRIBE_COST_MIN, CONSTANTS.BRIBE_COST_MAX);
     
@@ -476,7 +455,8 @@ function resolveCombatRound(state, combatState, action) {
       pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
       newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
       
-      logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr, -${pirateDamage} hull)\n`;
+      logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr)\n`;
+      logEntry += "They attack while you're vulnerable! " + `(-${pirateDamage} hull)\n`;
     }
     
   } else if (action === "flee") {
@@ -515,16 +495,30 @@ function resolveCombatRound(state, combatState, action) {
     const creditReward = randomInt(CONSTANTS.VICTORY_CREDITS_MIN, CONSTANTS.VICTORY_CREDITS_MAX);
     newState.player.credits += creditReward;
     
-    // Chance for salvage loot
-    if (Math.random() < CONSTANTS.SALVAGE_CHANCE) {
-      const salvageAmount = randomInt(CONSTANTS.SALVAGE_AMOUNT_MIN, CONSTANTS.SALVAGE_AMOUNT_MAX);
-      const salvageCommodity = randomChoice(COMMODITIES);
-      newCombat.pendingLoot = {
-        commodityId: salvageCommodity.id,
-        commodityName: salvageCommodity.name,
-        amount: salvageAmount
-      };
+    // Guaranteed tiered loot system (100% drop rate)
+    const lootTier = Math.random();
+    let salvageAmount, eligibleCommodities;
+
+    if (lootTier < 0.70) {
+      // Common (70%): 1-2 units of cheap commodities (≤50cr)
+      salvageAmount = randomInt(1, 2);
+      eligibleCommodities = COMMODITIES.filter(c => c.basePrice <= 50);
+    } else if (lootTier < 0.95) {
+      // Uncommon (25%): 2-3 units of mid-tier (51-200cr)
+      salvageAmount = randomInt(2, 3);
+      eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 50 && c.basePrice <= 200);
+    } else {
+      // Rare (5%): 3-5 units of expensive (>200cr)
+      salvageAmount = randomInt(3, 5);
+      eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 200);
     }
+
+    const salvageCommodity = randomChoice(eligibleCommodities);
+    newCombat.pendingLoot = {
+      commodityId: salvageCommodity.id,
+      commodityName: salvageCommodity.name,
+      amount: salvageAmount
+    };
     
     newCombat.combatLog.push(`\nVICTORY! Earned ${creditReward}cr.`);
     if (newCombat.pendingLoot) {

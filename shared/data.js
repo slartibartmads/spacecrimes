@@ -402,22 +402,22 @@ const PIRATE_TYPES = [
   {
     id: "scout",
     name: "Scout",
-    hullMin: 30,
-    hullMax: 50,
+    hullMin: 38,
+    hullMax: 63,
     flavorText: "ragtag junker with patched hull plating"
   },
   {
     id: "raider",
     name: "Raider",
-    hullMin: 50,
-    hullMax: 80,
+    hullMin: 63,
+    hullMax: 100,
     flavorText: "armed freighter bristling with weapons"
   },
   {
     id: "battleship",
     name: "Battleship",
-    hullMin: 80,
-    hullMax: 120,
+    hullMin: 100,
+    hullMax: 150,
     flavorText: "military-grade vessel with shield signatures"
   }
 ];
@@ -427,22 +427,22 @@ const COP_TYPES = [
   {
     id: "drone",
     name: "Patrol Drone",
-    hullMin: 40,
-    hullMax: 60,
+    hullMin: 50,
+    hullMax: 75,
     flavorText: "automated enforcement unit with basic scanners"
   },
   {
     id: "frigate",
     name: "Customs Frigate",
-    hullMin: 60,
-    hullMax: 90,
+    hullMin: 75,
+    hullMax: 113,
     flavorText: "government vessel with interdiction protocols"
   },
   {
     id: "cruiser",
     name: "Enforcement Cruiser",
-    hullMin: 90,
-    hullMax: 130,
+    hullMin: 113,
+    hullMax: 163,
     flavorText: "heavy law enforcement warship with warrant authority"
   }
 ];
@@ -621,15 +621,10 @@ const CONSTANTS = {
   COMBAT_ROUNDS_MAX: 3,
   
   // Player combat actions
-  ATTACK_DAMAGE_MIN: 25,
-  ATTACK_DAMAGE_MAX: 40,
+  ATTACK_DAMAGE_MIN: 20,
+  ATTACK_DAMAGE_MAX: 35,
   ATTACK_DAMAGE_TAKEN_MIN: 15,
   ATTACK_DAMAGE_TAKEN_MAX: 30,
-  
-  DEFEND_DAMAGE_MIN: 10,
-  DEFEND_DAMAGE_MAX: 20,
-  DEFEND_DAMAGE_TAKEN_MIN: 5,
-  DEFEND_DAMAGE_TAKEN_MAX: 15,
   
   // Pirate difficulty scaling based on cargo value
   PIRATE_SCOUT_THRESHOLD: 500,      // < 500cr cargo = scouts likely
@@ -641,18 +636,18 @@ const CONSTANTS = {
   COP_FRIGATE_THRESHOLD: 3000,      // 1000-3000cr = customs frigates
   // > 3000cr cargo = enforcement cruisers
   
-  BRIBE_COST_MIN: 100,
-  BRIBE_COST_MAX: 300,
-  BRIBE_SUCCESS_CHANCE: 0.60,
+  BRIBE_COST_MIN: 200,
+  BRIBE_COST_MAX: 500,
+  BRIBE_SUCCESS_CHANCE: 0.75,
   
-  FLEE_SUCCESS_BASE: 0.70,
-  FLEE_FAIL_DAMAGE_MIN: 30,
-  FLEE_FAIL_DAMAGE_MAX: 50,
+  FLEE_SUCCESS_BASE: 0.25,
+  FLEE_FAIL_DAMAGE_MIN: 50,
+  FLEE_FAIL_DAMAGE_MAX: 80,
   
   // Victory rewards
   VICTORY_CREDITS_MIN: 50,
   VICTORY_CREDITS_MAX: 150,
-  SALVAGE_CHANCE: 0.30,
+  SALVAGE_CHANCE: 1.0,
   SALVAGE_AMOUNT_MIN: 1,
   SALVAGE_AMOUNT_MAX: 3,
   

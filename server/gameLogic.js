@@ -399,11 +399,13 @@ export function buyCommodity(player, markets, commodityId, quantity) {
   // Increase price at current station
   market.currentPrice = Math.round(market.currentPrice * (1 + CONSTANTS.PLAYER_BUY_PRICE_INCREASE));
   
-  // Decrease price at connected stations
+  // Decrease price at connected stations (only if they sell this commodity)
   const connectedStations = getConnectedStations(currentStation.id);
   connectedStations.forEach(stationId => {
-    newMarkets[stationId][commodityId].currentPrice = 
-      Math.round(newMarkets[stationId][commodityId].currentPrice * (1 - CONSTANTS.ADJACENT_PRICE_CHANGE));
+    if (newMarkets[stationId] && newMarkets[stationId][commodityId] && newMarkets[stationId][commodityId].currentPrice !== undefined) {
+      newMarkets[stationId][commodityId].currentPrice = 
+        Math.round(newMarkets[stationId][commodityId].currentPrice * (1 - CONSTANTS.ADJACENT_PRICE_CHANGE));
+    }
   });
   
   // Stats
@@ -463,11 +465,13 @@ export function sellCommodity(player, markets, commodityId, quantity) {
   // Decrease price at current station
   market.currentPrice = Math.round(market.currentPrice * (1 - CONSTANTS.PLAYER_SELL_PRICE_DECREASE));
   
-  // Increase price at connected stations
+  // Increase price at connected stations (only if they sell this commodity)
   const connectedStations = getConnectedStations(currentStation.id);
   connectedStations.forEach(stationId => {
-    newMarkets[stationId][commodityId].currentPrice = 
-      Math.round(newMarkets[stationId][commodityId].currentPrice * (1 + CONSTANTS.ADJACENT_PRICE_CHANGE));
+    if (newMarkets[stationId] && newMarkets[stationId][commodityId] && newMarkets[stationId][commodityId].currentPrice !== undefined) {
+      newMarkets[stationId][commodityId].currentPrice = 
+        Math.round(newMarkets[stationId][commodityId].currentPrice * (1 + CONSTANTS.ADJACENT_PRICE_CHANGE));
+    }
   });
   
   // Stats
@@ -597,20 +601,39 @@ export function rollPirateType(contrabandValue) {
   }
 }
 
-export function rollCopType(cargoValue) {
+export function rollCopType(cargoValue, playerBounty = 0) {
+  // Determine base tier from cargo value
+  let baseTier = 0; // 0=drone, 1=frigate, 2=cruiser
+  
   if (cargoValue < CONSTANTS.COP_DRONE_THRESHOLD) {
+    baseTier = 0;
+  } else if (cargoValue < CONSTANTS.COP_FRIGATE_THRESHOLD) {
+    baseTier = 1;
+  } else {
+    baseTier = 2;
+  }
+  
+  // Apply bounty bias (shift toward tougher cops)
+  let tierBias = 0;
+  if (playerBounty >= 2000) tierBias = 2;      // High bounty = +2 tiers
+  else if (playerBounty >= 800) tierBias = 1;  // Medium bounty = +1 tier
+  
+  const finalTier = Math.min(2, baseTier + tierBias); // Cap at cruiser (tier 2)
+  
+  // Return cop type based on final tier
+  if (finalTier === 0) {
     const roll = Math.random();
     if (roll < 0.70) return COP_TYPES[0]; // drone
     else return COP_TYPES[1]; // frigate
-  } else if (cargoValue < CONSTANTS.COP_FRIGATE_THRESHOLD) {
+  } else if (finalTier === 1) {
     const roll = Math.random();
     if (roll < 0.20) return COP_TYPES[0]; // drone
     else if (roll < 0.80) return COP_TYPES[1]; // frigate
     else return COP_TYPES[2]; // cruiser
-  } else {
+  } else { // finalTier === 2
     const roll = Math.random();
     if (roll < 0.30) return COP_TYPES[1]; // frigate
-    else return COP_TYPES[2]; // cruiser
+    else return COP_TYPES[2]; // cruiser (mostly cruisers at high bounty)
   }
 }
 
@@ -640,7 +663,7 @@ export function initiateCombat(player) {
 
 export function initiateCopCombat(player) {
   const cargoValue = calculateTotalCargoValue(player, {});
-  const copType = rollCopType(cargoValue);
+  const copType = rollCopType(cargoValue, player.reputation?.currentBounty || 0);
   const copHull = randomInt(copType.hullMin, copType.hullMax);
   const maxRounds = randomInt(CONSTANTS.COMBAT_ROUNDS_MIN, CONSTANTS.COMBAT_ROUNDS_MAX);
   
@@ -735,18 +758,6 @@ export function resolveCombatRound(player, combatState, action) {
       logEntry += randomChoice(COMBAT_FLAVOR.attack_return) + ` (-${enemyDamage} your hull)\n`;
     }
     
-  } else if (action === "defend") {
-    const playerDamage = randomInt(CONSTANTS.DEFEND_DAMAGE_MIN, CONSTANTS.DEFEND_DAMAGE_MAX);
-    newCombat[enemyHullKey] -= playerDamage;
-    logEntry += randomChoice(COMBAT_FLAVOR.defend_chip) + ` (-${playerDamage} ${enemyName} hull)\n`;
-    
-    if (newCombat[enemyHullKey] > 0) {
-      const enemyDamage = randomInt(CONSTANTS.DEFEND_DAMAGE_TAKEN_MIN, CONSTANTS.DEFEND_DAMAGE_TAKEN_MAX);
-      newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
-      
-      logEntry += randomChoice(COMBAT_FLAVOR.defend_success) + ` (-${enemyDamage} your hull)\n`;
-    }
-    
   } else if (action === "bribe") {
     const bribeCost = randomInt(CONSTANTS.BRIBE_COST_MIN, CONSTANTS.BRIBE_COST_MAX);
     
@@ -766,7 +777,8 @@ export function resolveCombatRound(player, combatState, action) {
       enemyDamage = Math.round(enemyDamage * (1 - damageReduction));
       newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
       
-      logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr, -${enemyDamage} hull)\n`;
+      logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr)\n`;
+      logEntry += "They attack while you're vulnerable! " + `(-${enemyDamage} hull)\n`;
     }
     
   } else if (action === "flee") {
@@ -801,10 +813,58 @@ export function resolveCombatRound(player, combatState, action) {
       newCombat.combatLog.push(`\nVICTORY! You've defeated ${enemyName}.`);
       newCombat.combatLog.push(`Prepare to loot their cargo and credits...`);
     } else if (isCop) {
-      // Cops drop credits only (no salvage)
+      // Cops now drop loot + credits + ADD BOUNTY
       const creditReward = randomInt(CONSTANTS.COP_VICTORY_CREDITS_MIN, CONSTANTS.COP_VICTORY_CREDITS_MAX);
       newPlayer.credits += creditReward;
+      
+      // Add bounty for cop killing (integrate with existing reputation system)
+      const bountyAmount = randomInt(500, 1200);
+      if (!newPlayer.reputation) {
+        newPlayer.reputation = {
+          piracyKills: 0,
+          bountyKills: 0,
+          timesKilled: 0,
+          currentBounty: 0
+        };
+      }
+      newPlayer.reputation.currentBounty = (newPlayer.reputation.currentBounty || 0) + bountyAmount;
+      
+      // Track cop kills in stats
+      if (!newPlayer.stats.copsKilled) {
+        newPlayer.stats.copsKilled = 0;
+      }
+      newPlayer.stats.copsKilled++;
+      
+      // Guaranteed tiered loot system (100% drop rate)
+      const lootTier = Math.random();
+      let salvageAmount, eligibleCommodities;
+
+      if (lootTier < 0.70) {
+        // Common (70%): 1-2 units of cheap commodities (≤50cr)
+        salvageAmount = randomInt(1, 2);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice <= 50);
+      } else if (lootTier < 0.95) {
+        // Uncommon (25%): 2-3 units of mid-tier (51-200cr)
+        salvageAmount = randomInt(2, 3);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 50 && c.basePrice <= 200);
+      } else {
+        // Rare (5%): 3-5 units of expensive (>200cr)
+        salvageAmount = randomInt(3, 5);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 200);
+      }
+
+      const salvageCommodity = randomChoice(eligibleCommodities);
+      newCombat.pendingLoot = {
+        commodityId: salvageCommodity.id,
+        commodityName: salvageCommodity.name,
+        amount: salvageAmount
+      };
+      
       newCombat.combatLog.push(`\nVICTORY! Seized ${creditReward}cr from enforcement vessel.`);
+      newCombat.combatLog.push(`WANTED! Bounty increased by ${bountyAmount}cr (Total: ${newPlayer.reputation.currentBounty}cr)`);
+      if (newCombat.pendingLoot) {
+        newCombat.combatLog.push(`Salvage detected: ${newCombat.pendingLoot.amount}x ${newCombat.pendingLoot.commodityName}`);
+      }
     } else {
       // Pirates can be defeated for stats and drop salvage
       newPlayer.stats.piratesDefeated++;
@@ -812,15 +872,30 @@ export function resolveCombatRound(player, combatState, action) {
       const creditReward = randomInt(CONSTANTS.VICTORY_CREDITS_MIN, CONSTANTS.VICTORY_CREDITS_MAX);
       newPlayer.credits += creditReward;
       
-      if (Math.random() < CONSTANTS.SALVAGE_CHANCE) {
-        const salvageAmount = randomInt(CONSTANTS.SALVAGE_AMOUNT_MIN, CONSTANTS.SALVAGE_AMOUNT_MAX);
-        const salvageCommodity = randomChoice(COMMODITIES);
-        newCombat.pendingLoot = {
-          commodityId: salvageCommodity.id,
-          commodityName: salvageCommodity.name,
-          amount: salvageAmount
-        };
+      // Guaranteed tiered loot system (100% drop rate)
+      const lootTier = Math.random();
+      let salvageAmount, eligibleCommodities;
+
+      if (lootTier < 0.70) {
+        // Common (70%): 1-2 units of cheap commodities (≤50cr)
+        salvageAmount = randomInt(1, 2);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice <= 50);
+      } else if (lootTier < 0.95) {
+        // Uncommon (25%): 2-3 units of mid-tier (51-200cr)
+        salvageAmount = randomInt(2, 3);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 50 && c.basePrice <= 200);
+      } else {
+        // Rare (5%): 3-5 units of expensive (>200cr)
+        salvageAmount = randomInt(3, 5);
+        eligibleCommodities = COMMODITIES.filter(c => c.basePrice > 200);
       }
+
+      const salvageCommodity = randomChoice(eligibleCommodities);
+      newCombat.pendingLoot = {
+        commodityId: salvageCommodity.id,
+        commodityName: salvageCommodity.name,
+        amount: salvageAmount
+      };
       
       newCombat.combatLog.push(`\nVICTORY! Earned ${creditReward}cr.`);
       if (newCombat.pendingLoot) {
@@ -1203,6 +1278,11 @@ export function respawn(player) {
   newPlayer.upgrades = { cargo: 0, hull: 0, weapon: 0 };
   newPlayer.location = nearestStation.id;
   newPlayer.activeCombat = null;
+  
+  // Void bounty on death (reset to 0)
+  if (newPlayer.reputation) {
+    newPlayer.reputation.currentBounty = 0;
+  }
   
   return { 
     success: true,
