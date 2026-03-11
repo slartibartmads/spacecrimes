@@ -883,18 +883,12 @@ function handleAcceptLoot(socket, data, callback, io) {
   updatedPlayer.activeCombat = null;
   updatePlayer(socket.id, updatedPlayer);
   
-  // Add to activity
-  addActivity({
-    type: 'loot',
-    playerName: player.name,
-    message: result.message || `${player.name} defeated a pirate and claimed loot`
-  });
+  // Don't log to activity feed - player's local log already shows this
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
     player: getPublicPlayerInfo(socket.id) 
   });
-  io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
   callback({ 
     success: true, 
