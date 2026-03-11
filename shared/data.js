@@ -475,32 +475,32 @@ const ROUTES = [
 const UPGRADES = [
   {
     id: "cargo",
-    name: "Cargo Expansion",
+    name: "Cargo",
     baseCost: 500,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 10,
-    description: "Increase cargo capacity by 10 per tier",
+    description: "+10 Cargo Capacity",
     effectType: 'capacity'
   },
   {
     id: "hull",
-    name: "Hull Reinforcement",
+    name: "Hull",
     baseCost: 600,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 20,
-    description: "Add 20 max hull per tier",
+    description: "+20 Hull",
     effectType: 'hull'
   },
   {
     id: "weapon",
-    name: "Weapon System",
+    name: "Weapons",
     baseCost: 800,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 5,
-    description: "Increase attack damage by 5 per tier",
+    description: "+5 Damage",
     effectType: 'weapon'
   }
 ];
