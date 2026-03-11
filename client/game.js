@@ -477,17 +477,67 @@ function renderStation() {
     'makinen_tanaka': 'img/icon_institute.svg'
   };
   
-  // Update station header
-  const stationIcon = document.getElementById('station-icon');
+  // Update station header icon
+  const iconContainer = document.getElementById('station-icon-container');
   const isMajor = station.type === 'military' || station.type === 'trading' || 
                   station.type === 'entertainment' || station.type === 'industrial' || 
                   station.type === 'agricultural' || station.type === 'research';
   
+  iconContainer.innerHTML = ''; // Clear existing content
+  
   if (isMajor && stationIcons[station.id]) {
-    stationIcon.src = stationIcons[station.id];
-    stationIcon.style.display = 'block';
+    // Major station: use icon image
+    const img = document.createElement('img');
+    img.src = stationIcons[station.id];
+    img.alt = station.name;
+    iconContainer.appendChild(img);
   } else {
-    stationIcon.style.display = 'none';
+    // Minor station: create hexagon with initials
+    const initials = station.name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2); // Max 2 characters
+    
+    // Create SVG hexagon
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '80');
+    svg.setAttribute('height', '80');
+    svg.setAttribute('viewBox', '0 0 80 80');
+    
+    // Create hexagon polygon (flat-top orientation)
+    const hexagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const centerX = 40;
+    const centerY = 40;
+    const radius = 35;
+    const points = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 6;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      points.push(`${x},${y}`);
+    }
+    hexagon.setAttribute('points', points.join(' '));
+    hexagon.setAttribute('fill', '#105626');
+    hexagon.setAttribute('stroke', '#17D773');
+    hexagon.setAttribute('stroke-width', '5.7');
+    
+    // Create text for initials
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', '40');
+    text.setAttribute('y', '48');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', '#17D773');
+    text.setAttribute('font-family', 'Source Code Pro, monospace');
+    text.setAttribute('font-weight', '900');
+    text.setAttribute('font-size', '25');
+    text.textContent = initials;
+    
+    svg.appendChild(hexagon);
+    svg.appendChild(text);
+    iconContainer.appendChild(svg);
   }
   
   document.getElementById('station-name').textContent = station.name;

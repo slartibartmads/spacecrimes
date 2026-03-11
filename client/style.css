@@ -100,10 +100,23 @@ body {
   position: relative;
 }
 
-#station-icon {
+#station-icon-container {
   width: 82px;
   height: 82px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#station-icon-container img {
+  width: 82px;
+  height: 82px;
+}
+
+#station-icon-container svg {
+  width: 80px;
+  height: 80px;
 }
 
 #station-info {
