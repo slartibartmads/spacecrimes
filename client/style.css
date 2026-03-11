@@ -817,6 +817,10 @@ button.small {
   color: var(--bg-black);
 }
 
+.leaderboard-entry.self .leaderboard-credits {
+  color: var(--bg-black);
+}
+
 .leaderboard-rank {
   font-weight: bold;
   margin-right: 8px;
