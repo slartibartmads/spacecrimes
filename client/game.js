@@ -573,6 +573,7 @@ function renderStation() {
       const icon = document.createElement('img');
       icon.src = commodityIcons[commodity.id];
       icon.alt = commodity.name;
+      icon.title = commodity.description; // Tooltip with flavor text
       icon.classList.add('commodity-icon');
       nameCell.appendChild(icon);
     }
