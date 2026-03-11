@@ -446,32 +446,17 @@ function renderMap() {
     
     group.appendChild(text);
     
-    // Add location pin if this is the current location (after text so it renders on top)
+    // Add location marker if this is the current location (after text so it renders on top)
     if (station.id === playerState.location) {
-      const pinSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      pinSvg.setAttribute('width', '21.33');
-      pinSvg.setAttribute('height', '32');
-      pinSvg.setAttribute('viewBox', '0 0 16 24');
-      // Position pin with bottom center at station position
-      pinSvg.setAttribute('x', station.position.x - 10.67);
-      pinSvg.setAttribute('y', station.position.y - 29);
-      pinSvg.setAttribute('overflow', 'visible');
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      marker.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_marker.svg');
+      marker.setAttribute('width', '23');
+      marker.setAttribute('height', '25');
+      // Position marker centered on station position
+      marker.setAttribute('x', station.position.x - 11.5);
+      marker.setAttribute('y', station.position.y - 12.5);
       
-      const pinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      pinPath.setAttribute('d', 'M8 1C11.8903 1 15 4.22965 15 8.1582C14.9999 9.23467 14.5443 10.5661 13.9766 11.8477C13.3918 13.1675 12.6201 14.5791 11.8604 15.8633C11.0986 17.1508 10.3385 18.3284 9.76953 19.1826C9.48485 19.61 9.24689 19.9578 9.08008 20.1992C8.99673 20.3198 8.93092 20.4141 8.88574 20.4785C8.86317 20.5107 8.84593 20.5358 8.83398 20.5527C8.82806 20.5611 8.82347 20.5678 8.82031 20.5723C8.81878 20.5744 8.81726 20.576 8.81641 20.5771L8.81543 20.5791L8 21.7256L7.18457 20.5791L7.18359 20.5771C7.18274 20.576 7.18122 20.5744 7.17969 20.5723C7.17653 20.5678 7.17194 20.5611 7.16602 20.5527C7.15407 20.5358 7.13683 20.5107 7.11426 20.4785C7.06908 20.4141 7.00327 20.3198 6.91992 20.1992C6.75311 19.9578 6.51515 19.61 6.23047 19.1826C5.66149 18.3284 4.90136 17.1508 4.13965 15.8633C3.37989 14.5791 2.60818 13.1675 2.02344 11.8477C1.45567 10.5661 1.00009 9.23467 1 8.1582C1 4.22965 4.10968 1 8 1Z');
-      pinPath.setAttribute('fill', '#FF5A41');
-      pinPath.setAttribute('stroke', '#F2FFC5');
-      pinPath.setAttribute('stroke-width', '2');
-      
-      const pinCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      pinCircle.setAttribute('cx', '8');
-      pinCircle.setAttribute('cy', '8');
-      pinCircle.setAttribute('r', '3');
-      pinCircle.setAttribute('fill', '#F2FFC5');
-      
-      pinSvg.appendChild(pinPath);
-      pinSvg.appendChild(pinCircle);
-      group.appendChild(pinSvg);
+      group.appendChild(marker);
     }
     
     // Click to travel
@@ -484,34 +469,85 @@ function renderMap() {
     stationsLayer.appendChild(group);
   });
   
-  // Draw other players (small dots)
+  // Draw other players (ship markers in grid)
   const validPlayers = allPlayers.filter(p => p != null && p.socketId);
   
+  // Group players by station, excluding self
+  const playersByStation = {};
   validPlayers.forEach(player => {
     if (!playerState || player.socketId === playerState.socketId) return; // Skip self
-    
-    const station = STATIONS.find(s => s.id === player.location);
+    if (!playersByStation[player.location]) {
+      playersByStation[player.location] = [];
+    }
+    playersByStation[player.location].push(player);
+  });
+  
+  // Render player grids for each station
+  Object.keys(playersByStation).forEach(stationId => {
+    const players = playersByStation[stationId];
+    const station = STATIONS.find(s => s.id === stationId);
     if (!station) return;
     
-    // Offset slightly so multiple players at same station are visible
-    const offsetX = (Math.random() - 0.5) * 15;
-    const offsetY = (Math.random() - 0.5) * 15;
+    // Sort: bounties first, then others
+    players.sort((a, b) => {
+      const aBounty = (a.reputation?.currentBounty || 0) > 0;
+      const bBounty = (b.reputation?.currentBounty || 0) > 0;
+      if (aBounty && !bBounty) return -1;
+      if (!aBounty && bBounty) return 1;
+      return 0;
+    });
     
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', station.position.x + offsetX);
-    dot.setAttribute('cy', station.position.y + offsetY);
-    dot.setAttribute('r', '3');
-    dot.setAttribute('class', 'player-dot');
+    // Grid layout constants
+    const SHIP_SIZE = 7;
+    const SPACING = 0;
+    const SHIPS_PER_ROW = 4;
     
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', station.position.x + offsetX);
-    label.setAttribute('y', station.position.y + offsetY + 10);
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('class', 'player-label');
-    label.textContent = player.name;
+    // Determine station type and offset
+    const isMajor = station.type === 'military' || station.type === 'trading' || 
+                    station.type === 'entertainment' || station.type === 'industrial' || 
+                    station.type === 'agricultural' || station.type === 'research';
+    const GRID_OFFSET_Y = isMajor ? 20 : 15; // Distance above station
     
-    playersLayer.appendChild(dot);
-    playersLayer.appendChild(label);
+    // Calculate grid dimensions
+    const numRows = Math.ceil(players.length / SHIPS_PER_ROW);
+    const numCols = Math.min(players.length, SHIPS_PER_ROW);
+    const gridWidth = (numCols * SHIP_SIZE) + ((numCols - 1) * SPACING);
+    const gridHeight = (numRows * SHIP_SIZE) + ((numRows - 1) * SPACING);
+    
+    // Starting position (centered above station)
+    const startX = station.position.x - (gridWidth / 2);
+    const startY = station.position.y - GRID_OFFSET_Y - gridHeight;
+    
+    // Place each ship in grid
+    players.forEach((player, index) => {
+      const row = Math.floor(index / SHIPS_PER_ROW);
+      const col = index % SHIPS_PER_ROW;
+      
+      // Calculate how many ships are in this row
+      const shipsInThisRow = (row === numRows - 1) 
+        ? players.length - (row * SHIPS_PER_ROW) 
+        : SHIPS_PER_ROW;
+      
+      // Center this row if it has fewer than SHIPS_PER_ROW
+      const rowWidth = (shipsInThisRow * SHIP_SIZE) + ((shipsInThisRow - 1) * SPACING);
+      const rowStartX = station.position.x - (rowWidth / 2);
+      
+      const shipX = rowStartX + (col * (SHIP_SIZE + SPACING));
+      const shipY = startY + (row * (SHIP_SIZE + SPACING));
+      
+      const hasBounty = (player.reputation?.currentBounty || 0) > 0;
+      
+      // Create SVG image element for ship
+      const ship = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      ship.setAttributeNS('http://www.w3.org/1999/xlink', 'href', hasBounty ? 'img/player_ship_red.svg' : 'img/player_ship_yellow.svg');
+      ship.setAttribute('x', shipX);
+      ship.setAttribute('y', shipY);
+      ship.setAttribute('width', SHIP_SIZE);
+      ship.setAttribute('height', SHIP_SIZE);
+      ship.setAttribute('class', 'player-ship');
+      
+      playersLayer.appendChild(ship);
+    });
   });
 }
 
@@ -1675,6 +1711,25 @@ function initializeDebugPanel() {
       }
     } catch (error) {
       addLog('Failed to clear bounty: ' + error.message, 'danger');
+    }
+  });
+  
+  document.getElementById('debug-add-bounty')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugAddBounty();
+      if (result.success) {
+        addLog('Added 1000cr bounty', 'warning');
+        
+        // Update UI immediately
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          renderStatus();
+          renderMap(); // Refresh map to show red ship marker
+        }
+      }
+    } catch (error) {
+      addLog('Failed to add bounty: ' + error.message, 'danger');
     }
   });
   

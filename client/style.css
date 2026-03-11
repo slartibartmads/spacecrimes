@@ -928,17 +928,9 @@ button.small {
   border-color: var(--warning-yellow);
 }
 
-/* Other players on map */
-.player-dot {
-  fill: var(--warning-yellow);
-  stroke: var(--bg-black);
-  stroke-width: 1;
-}
-
-.player-label {
-  fill: var(--warning-yellow);
-  font-size: 10px;
-  font-family: 'Source Code Pro', monospace;
+/* Other players on map - ship markers in grid */
+.player-ship {
+  /* Ships are rendered via SVG image elements with colored assets */
 }
 
 /* === RESPONSIVE (MIN) === */

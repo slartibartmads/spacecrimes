@@ -602,6 +602,27 @@ export function debugClearBounty() {
 }
 
 /**
+ * Add bounty to player (for debug panel)
+ */
+export function debugAddBounty() {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:addBounty', {}, (response) => {
+      if (response && response.success) {
+        playerState = response.playerState;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to add bounty'));
+      }
+    });
+  });
+}
+
+/**
  * Upgrade cargo to maximum (for debug panel)
  */
 export function debugMaxCargo() {

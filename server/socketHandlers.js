@@ -693,7 +693,14 @@ function handleCombatAction(socket, data, callback, io) {
         
         // Broadcast updates
         io.emit('activityUpdate', { activities: getServerState().recentActivity });
-        io.emit('playerUpdate', getAllPublicPlayerInfo());
+        io.emit('playerUpdate', { 
+          socketId: attackerSocketId, 
+          player: getPublicPlayerInfo(attackerSocketId) 
+        });
+        io.emit('playerUpdate', { 
+          socketId: defenderSocketId, 
+          player: getPublicPlayerInfo(defenderSocketId) 
+        });
         
       } else if (newCombat.outcome === 'defeat') {
         // Check for mutual destruction (both died)
@@ -732,7 +739,14 @@ function handleCombatAction(socket, data, callback, io) {
           
           // Broadcast updates
           io.emit('activityUpdate', { activities: getServerState().recentActivity });
-          io.emit('playerUpdate', getAllPublicPlayerInfo());
+          io.emit('playerUpdate', { 
+            socketId: attackerSocketId, 
+            player: getPublicPlayerInfo(attackerSocketId) 
+          });
+          io.emit('playerUpdate', { 
+            socketId: defenderSocketId, 
+            player: getPublicPlayerInfo(defenderSocketId) 
+          });
           
         } else {
           // Attacker lost - handle death penalty and bounty reward
@@ -771,7 +785,14 @@ function handleCombatAction(socket, data, callback, io) {
           
           // Broadcast updates
           io.emit('activityUpdate', { activities: getServerState().recentActivity });
-          io.emit('playerUpdate', getAllPublicPlayerInfo());
+          io.emit('playerUpdate', { 
+            socketId: attackerSocketId, 
+            player: getPublicPlayerInfo(attackerSocketId) 
+          });
+          io.emit('playerUpdate', { 
+            socketId: defenderSocketId, 
+            player: getPublicPlayerInfo(defenderSocketId) 
+          });
         }
         
       } else if (newCombat.outcome === 'escaped') {
@@ -1175,7 +1196,14 @@ function handleAttackPlayer(socket, data, callback, io) {
   
   // Broadcast activity update
   io.emit('activityUpdate', { activities: state.recentActivity });
-  io.emit('playerUpdate', getAllPublicPlayerInfo());
+  io.emit('playerUpdate', { 
+    socketId: socket.id, 
+    player: getPublicPlayerInfo(socket.id) 
+  });
+  io.emit('playerUpdate', { 
+    socketId: targetSocketId, 
+    player: getPublicPlayerInfo(targetSocketId) 
+  });
 }
 
 /**
@@ -1297,7 +1325,10 @@ function setupDebugHandlers(socket, io) {
       socket.emit('playerState', player);
       
       // Broadcast player update
-      io.emit('playerUpdate', getAllPublicPlayerInfo());
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
     } catch (error) {
       console.error('Debug add credits error:', error);
       callback({ success: false, error: error.message });
@@ -1324,7 +1355,10 @@ function setupDebugHandlers(socket, io) {
       socket.emit('playerState', player);
       
       // Broadcast player update
-      io.emit('playerUpdate', getAllPublicPlayerInfo());
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
     } catch (error) {
       console.error('Debug full hull error:', error);
       callback({ success: false, error: error.message });
@@ -1340,7 +1374,7 @@ function setupDebugHandlers(socket, io) {
         return callback({ success: false, error: 'Player not found' });
       }
       
-      player.currentBounty = 0;
+      player.reputation.currentBounty = 0;
       updatePlayer(socket.id, player);
       
       console.log(`[DEBUG] Cleared bounty for ${player.name}`);
@@ -1351,9 +1385,52 @@ function setupDebugHandlers(socket, io) {
       socket.emit('playerState', player);
       
       // Broadcast player update
-      io.emit('playerUpdate', getAllPublicPlayerInfo());
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
     } catch (error) {
       console.error('Debug clear bounty error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Add bounty
+  socket.on('debug:addBounty', (data, callback) => {
+    try {
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      if (!player.reputation) {
+        player.reputation = {
+          kills: 0,
+          timesKilled: 0,
+          copKills: 0,
+          bountyKills: 0,
+          currentBounty: 0
+        };
+      }
+      
+      player.reputation.currentBounty += 1000;
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Added 1000cr bounty to ${player.name}, total: ${player.reputation.currentBounty}`);
+      
+      callback({ success: true, playerState: player });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
+    } catch (error) {
+      console.error('Debug add bounty error:', error);
       callback({ success: false, error: error.message });
     }
   });
@@ -1379,7 +1456,10 @@ function setupDebugHandlers(socket, io) {
       socket.emit('playerState', player);
       
       // Broadcast player update
-      io.emit('playerUpdate', getAllPublicPlayerInfo());
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
     } catch (error) {
       console.error('Debug max cargo error:', error);
       callback({ success: false, error: error.message });
@@ -1418,11 +1498,15 @@ function setupDebugHandlers(socket, io) {
       socket.emit('playerState', player);
       
       // Broadcast player update to all clients (for leaderboard/map)
-      io.emit('playerUpdate', getAllPublicPlayerInfo());
+      io.emit('playerUpdate', { 
+        socketId: socket.id, 
+        player: getPublicPlayerInfo(socket.id) 
+      });
     } catch (error) {
       console.error('Debug teleport error:', error);
       callback({ success: false, error: error.message });
     }
   });
 }
+
 
