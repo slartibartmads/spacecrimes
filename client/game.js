@@ -547,15 +547,40 @@ function renderStation() {
   const commodityList = document.getElementById('commodity-list');
   commodityList.innerHTML = '';
   
+  // Commodity icon mapping
+  const commodityIcons = {
+    'croakers': 'img/icon_cigs.svg',
+    'booze': 'img/icon_swill.svg',
+    'cognex': 'img/icon_stims.svg',
+    'credentials': 'img/icon_cores.svg',
+    'weapons': 'img/icon_atrocities.svg',
+    'crank': 'img/icon_meth.svg',
+    'organs': 'img/icon_organs.svg',
+    'ai_chips': 'img/icon_ai_chips.svg'
+  };
+  
   COMMODITIES.forEach(commodity => {
     const marketData = gameState.markets[station.id][commodity.id];
     const playerQuantity = playerState.cargo[commodity.id] || 0;
     
     const row = document.createElement('tr');
     
-    // Name
+    // Name with icon
     const nameCell = document.createElement('td');
-    nameCell.textContent = commodity.name;
+    
+    // Add icon if available
+    if (commodityIcons[commodity.id]) {
+      const icon = document.createElement('img');
+      icon.src = commodityIcons[commodity.id];
+      icon.alt = commodity.name;
+      icon.classList.add('commodity-icon');
+      nameCell.appendChild(icon);
+    }
+    
+    // Add commodity name text
+    const nameText = document.createTextNode(commodity.name);
+    nameCell.appendChild(nameText);
+    
     row.appendChild(nameCell);
     
     // Price with arrow indicator
