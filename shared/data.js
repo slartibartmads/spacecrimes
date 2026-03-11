@@ -124,7 +124,7 @@ const STATIONS = [
     name: "Apex Station",
     type: "minor",
     description: "Small independent outpost",
-    position: { x: 369, y: 33 },
+    position: { x: 369, y: 18 },
     contrabandPolicy: "safe",
     priceModifiers: {
       "croakers": 0.8,

@@ -332,10 +332,10 @@ function renderMap() {
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', station.position.x);
-    text.setAttribute('y', station.position.y + size + 12);
+    text.setAttribute('y', station.position.y + size + (isMajor ? 14 : 12));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('fill', isMajor ? '#F2FFC5' : '#17D773');
-    text.setAttribute('font-size', isMajor ? '10' : '7');
+    text.setAttribute('font-size', isMajor ? '10' : '8');
     text.setAttribute('font-weight', '900');
     text.setAttribute('font-family', 'Source Code Pro, monospace');
     text.setAttribute('text-transform', 'uppercase');
@@ -368,7 +368,7 @@ function renderMap() {
       pinSvg.setAttribute('viewBox', '0 0 16 24');
       // Position pin with bottom center at station position
       pinSvg.setAttribute('x', station.position.x - 10.67);
-      pinSvg.setAttribute('y', station.position.y - 32);
+      pinSvg.setAttribute('y', station.position.y - 29);
       pinSvg.setAttribute('overflow', 'visible');
       
       const pinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
