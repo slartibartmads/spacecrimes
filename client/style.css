@@ -85,6 +85,63 @@ body {
   font-style: italic;
 }
 
+/* === STATION HEADER === */
+
+#station-header {
+  width: 100%;
+  height: 121px;
+  background: #062604;
+  border: 2px solid #17D773;
+  padding: 18px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 19px;
+  position: relative;
+}
+
+#station-icon {
+  width: 82px;
+  height: 82px;
+  flex-shrink: 0;
+}
+
+#station-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#station-label {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 10px;
+  text-transform: uppercase;
+  color: #17D773;
+  margin: 0;
+}
+
+#station-name {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 24px;
+  color: #F2FFC5;
+  margin: 0;
+}
+
+#station-description {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 14px;
+  color: #17D773;
+  margin: 0;
+  font-style: normal;
+}
+
 /* === TABLES === */
 
 table {
@@ -308,6 +365,61 @@ button.small {
 
 .modal-buttons button {
   flex: 1;
+}
+
+/* === COMBAT MODAL SPECIFIC STYLING === */
+
+#combat-modal {
+  height: 500px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#combat-modal.active {
+  display: flex; /* Only use flex layout when active */
+}
+
+#combat-modal h2,
+#combat-modal p {
+  flex-shrink: 0; /* Don't shrink title/description */
+}
+
+#combat-hulls {
+  flex-shrink: 0;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border: 1px solid var(--text-green-dark);
+  background: var(--row-alt);
+}
+
+#combat-log-container {
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--text-green-dark);
+  background: var(--row-alt);
+  padding: 8px;
+  margin: 10px 0;
+  flex-shrink: 0; /* Fixed height, don't shrink */
+}
+
+#combat-log {
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-green);
+}
+
+#combat-loot {
+  flex-shrink: 0;
+}
+
+#combat-actions,
+#combat-continue-section {
+  flex-shrink: 0;
+  min-height: 50px; /* Reserve space even when hidden to prevent resize */
 }
 
 /* === COMMODITY STYLING === */

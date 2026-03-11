@@ -467,7 +467,30 @@ function renderStation() {
   const station = STATIONS.find(s => s.id === playerState.location);
   if (!station) return;
   
-  document.getElementById('station-name').textContent = `DOCKED AT: ${station.name}`;
+  // Station icon mapping (same as in renderMap)
+  const stationIcons = {
+    'fort_attrition': 'img/icon_fort.svg',
+    'caveat_emptor': 'img/icon_caveat.svg',
+    'vice_berth': 'img/icon_vice.svg',
+    'disruptive_smelting': 'img/icon_disruptive.svg',
+    'nuevo_eden': 'img/icon_nuevo_eden.svg',
+    'makinen_tanaka': 'img/icon_institute.svg'
+  };
+  
+  // Update station header
+  const stationIcon = document.getElementById('station-icon');
+  const isMajor = station.type === 'military' || station.type === 'trading' || 
+                  station.type === 'entertainment' || station.type === 'industrial' || 
+                  station.type === 'agricultural' || station.type === 'research';
+  
+  if (isMajor && stationIcons[station.id]) {
+    stationIcon.src = stationIcons[station.id];
+    stationIcon.style.display = 'block';
+  } else {
+    stationIcon.style.display = 'none';
+  }
+  
+  document.getElementById('station-name').textContent = station.name.toUpperCase();
   document.getElementById('station-description').textContent = station.description;
   
   // Render commodities
