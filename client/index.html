@@ -146,13 +146,25 @@
 
   <!-- Combat Modal -->
   <div id="combat-modal" class="modal">
-    <h2 id="combat-title">PIRATE ENCOUNTER!</h2>
-    <p id="combat-description">Pirates have intercepted your ship!</p>
+    <!-- Title Section -->
+    <div id="combat-title-section">
+      <div id="combat-encounter-type">PIRATE ENCOUNTER</div>
+      <h2 id="combat-title">The Putrid Hand</h2>
+      <p id="combat-description">Ragtag junker with patched hull plating</p>
+    </div>
     
-    <!-- Hull Status -->
-    <div id="combat-hulls">
-      <div>YOUR HULL: <span id="combat-player-hull">100</span></div>
-      <div><span id="combat-enemy-label">PIRATE</span>: <span id="combat-pirate-hull">50</span></div>
+    <!-- Combat Bar (HP Distribution) -->
+    <div id="combat-bar">
+      <div id="combat-bar-container">
+        <div id="hp-distribution"></div>
+        <div id="combat-bar-text">
+          <span id="combat-you-label">YOU</span>
+          <span id="combat-player-hull">100</span>
+          <span id="combat-separator">-</span>
+          <span id="combat-pirate-hull">50</span>
+          <span id="combat-enemy-label">ENEMY</span>
+        </div>
+      </div>
     </div>
     
     <!-- Combat Log -->
@@ -172,9 +184,8 @@
     <!-- Combat Action Buttons -->
     <div class="modal-buttons" id="combat-actions">
       <button id="combat-attack">ATTACK</button>
-      <button id="combat-defend">DEFEND</button>
-      <button id="combat-bribe">BRIBE (<span id="bribe-cost">---</span>cr)</button>
-      <button id="combat-flee">FLEE (risky!)</button>
+      <button id="combat-bribe">BRIBE<br><span id="bribe-cost">1000</span>cr</button>
+      <button id="combat-flee">FLEE</button>
       <button id="combat-surrender" style="display: none;">SURRENDER (lose cargo)</button>
     </div>
     

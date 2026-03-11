@@ -822,8 +822,8 @@ function handleCombatAction(socket, data, callback, io) {
   updatePlayer(socket.id, result.playerState);
   const updatedPlayer = getPlayer(socket.id);
   
-  // Clear activeCombat if combat is resolved, otherwise update it
-  if (result.combatState.resolved) {
+  // Clear activeCombat if combat is resolved (unless there's pending loot), otherwise update it
+  if (result.combatState.resolved && !result.combatState.pendingLoot) {
     updatedPlayer.activeCombat = null;
   } else {
     updatedPlayer.activeCombat = result.combatState;

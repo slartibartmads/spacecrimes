@@ -964,6 +964,7 @@ function showCombatModal(combat) {
   
   const modal = document.getElementById('combat-modal');
   const overlay = document.getElementById('modal-overlay');
+  const encounterType = document.getElementById('combat-encounter-type');
   const title = document.getElementById('combat-title');
   const description = document.getElementById('combat-description');
   const playerHullSpan = document.getElementById('combat-player-hull');
@@ -976,26 +977,32 @@ function showCombatModal(combat) {
   
   // Set up initial display
   if (isPvp) {
+    encounterType.textContent = 'PVP COMBAT';
     enemyLabelSpan.textContent = enemyName.toUpperCase();
     if (combat.isDefender) {
-      title.textContent = `UNDER ATTACK: ${enemyName}`;
+      title.textContent = enemyName;
       description.textContent = `${enemyName} is attacking you!`;
     } else {
-      title.textContent = `ATTACKING: ${enemyName}`;
+      title.textContent = enemyName;
       description.textContent = `You're attacking ${enemyName}`;
     }
   } else if (isCop) {
+    encounterType.textContent = 'COP ENCOUNTER';
     enemyLabelSpan.textContent = 'COP';
-    title.textContent = `COP ENCOUNTER: ${enemyName}`;
-    description.textContent = `${enemyDescription}`;
+    title.textContent = enemyName;
+    description.textContent = enemyDescription;
   } else {
+    encounterType.textContent = 'PIRATE ENCOUNTER';
     enemyLabelSpan.textContent = 'PIRATE';
-    title.textContent = `PIRATE ENCOUNTER: ${enemyName}`;
-    description.textContent = `${enemyDescription}`;
+    title.textContent = enemyName;
+    description.textContent = enemyDescription;
   }
   
   playerHullSpan.textContent = playerState.hull;
   pirateHullSpan.textContent = enemyHull;
+  
+  // Update HP distribution bar
+  updateHPDistribution(playerState.hull, enemyHull);
   
   // Reset combat log tracker for new combat
   lastCombatLogLength = 0;
@@ -1009,16 +1016,18 @@ function showCombatModal(combat) {
   
   // Set up event handlers
   document.getElementById('combat-attack').onclick = () => handleCombatAction('attack');
-  document.getElementById('combat-defend').onclick = () => handleCombatAction('defend');
   document.getElementById('combat-bribe').onclick = () => handleCombatAction('bribe');
   document.getElementById('combat-flee').onclick = () => handleCombatAction('flee');
   
   // Show/hide bribe button (only for NPCs, not PVP)
   const bribeBtn = document.getElementById('combat-bribe');
+  const bribeCostSpan = document.getElementById('bribe-cost');
   if (isPvp) {
     bribeBtn.style.display = 'none';
   } else {
     bribeBtn.style.display = 'inline-block';
+    // Show estimated bribe cost range
+    bribeCostSpan.textContent = `${CONSTANTS.BRIBE_COST_MIN}-${CONSTANTS.BRIBE_COST_MAX}`;
   }
   
   // Show/hide surrender button based on enemy type (only for cops, not PVP)
@@ -1033,6 +1042,19 @@ function showCombatModal(combat) {
   // Show modal
   overlay.style.display = 'block';
   modal.style.display = 'block';
+}
+
+function updateHPDistribution(playerHull, enemyHull) {
+  const totalHP = playerHull + enemyHull;
+  const playerPercentage = totalHP > 0 ? (playerHull / totalHP) * 100 : 50;
+  
+  // The hp_distribution bar represents the player's portion of total HP
+  // Container width is 516px (modal 520px - 4px for margins)
+  const containerWidth = 516;
+  const barWidth = (containerWidth * playerPercentage / 100);
+  
+  const hpDistBar = document.getElementById('hp-distribution');
+  hpDistBar.style.width = `${barWidth}px`;
 }
 
 function showInspectionModal(inspectionState) {
@@ -1118,6 +1140,9 @@ function updateCombatDisplay(combat) {
   // Update hulls
   playerHullSpan.textContent = playerState.hull;
   pirateHullSpan.textContent = enemyHull;
+  
+  // Update HP distribution bar
+  updateHPDistribution(playerState.hull, enemyHull);
   
   // Update combat log (prepend new messages)
   updateCombatLog(combat.combatLog);
@@ -1375,19 +1400,29 @@ function updateCombatLog(combatLogArray) {
   const newMessages = combatLogArray.slice(lastCombatLogLength);
   
   newMessages.forEach(message => {
-    const entry = document.createElement('div');
-    entry.style.marginBottom = '4px';
-    entry.textContent = message;
+    // Check if this is a round header
+    const roundMatch = message.match(/^--- ROUND (\d+) ---$/);
     
-    // Prepend at the top (newest first, like activity log)
-    combatLogElement.insertBefore(entry, combatLogElement.firstChild);
+    if (roundMatch) {
+      // Create round header
+      const header = document.createElement('div');
+      header.className = 'combat-round-header';
+      header.textContent = message;
+      combatLogElement.insertBefore(header, combatLogElement.firstChild);
+    } else {
+      // Create round text
+      const entry = document.createElement('div');
+      entry.className = 'combat-round-text';
+      entry.textContent = message;
+      combatLogElement.insertBefore(entry, combatLogElement.firstChild);
+    }
   });
   
   // Update tracker
   lastCombatLogLength = combatLogArray.length;
   
-  // Keep only last 50 messages
-  while (combatLogElement.children.length > 50) {
+  // Keep only last 100 messages (rounds can have multiple entries)
+  while (combatLogElement.children.length > 100) {
     combatLogElement.removeChild(combatLogElement.lastChild);
   }
 }

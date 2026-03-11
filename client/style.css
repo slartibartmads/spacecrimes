@@ -387,56 +387,191 @@ button.small {
 /* === COMBAT MODAL SPECIFIC STYLING === */
 
 #combat-modal {
-  height: 500px;
-  flex-direction: column;
+  min-width: 520px;
+  max-width: 520px;
+  background: rgba(4, 15, 2, 0.75);
+  padding: 0;
+  overflow: visible;
+  border: 2px solid #17D773;
+}
+
+#combat-title-section {
+  background: #062604;
+  border: none;
+  padding: 20px;
+  padding-bottom: 26px;
+  text-align: center;
+}
+
+#combat-encounter-type {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 10px;
+  text-transform: uppercase;
+  color: #17D773;
+  margin-bottom: 12px;
+}
+
+#combat-title {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 24px;
+  color: #F2FFC5;
+  margin: 0 0 10px 0;
+  border: none;
+  padding: 0;
+}
+
+#combat-description {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 14px;
+  color: #17D773;
+  margin: 0;
+}
+
+/* Combat Bar (HP Distribution) */
+#combat-bar {
+  margin: 0;
+  padding: 0;
+}
+
+#combat-bar-container {
+  position: relative;
+  width: 516px;
+  height: 51px;
+  background: rgba(23, 215, 115, 0.5);
+  border-top: 2px solid #17D773;
+  border-bottom: 2px solid #17D773;
+  border-left: none;
+  border-right: none;
   overflow: hidden;
+  margin: 0 2px;
 }
 
-#combat-modal.active {
-  display: flex; /* Only use flex layout when active */
+#hp-distribution {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: #17D773;
+  transition: width 0.3s ease;
 }
 
-#combat-modal h2,
-#combat-modal p {
-  flex-shrink: 0; /* Don't shrink title/description */
-}
-
-#combat-hulls {
-  flex-shrink: 0;
-  margin-bottom: 10px;
+#combat-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
-  justify-content: space-between;
-  padding: 8px;
-  border: 1px solid var(--text-green-dark);
-  background: var(--row-alt);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  gap: 10px;
+  z-index: 1;
 }
 
+#combat-you-label {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 24px;
+  color: #021501;
+  position: absolute;
+  left: 20px;
+}
+
+#combat-enemy-label {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 24px;
+  color: #021501;
+  position: absolute;
+  right: 20px;
+}
+
+#combat-player-hull,
+#combat-pirate-hull,
+#combat-separator {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 24px;
+  color: #021501;
+}
+
+/* Combat Log */
 #combat-log-container {
-  height: 200px;
+  height: 339px;
   overflow-y: auto;
-  border: 1px solid var(--text-green-dark);
-  background: var(--row-alt);
-  padding: 8px;
-  margin: 10px 0;
-  flex-shrink: 0; /* Fixed height, don't shrink */
+  border: 2px solid #17D773;
+  border-top: none;
+  background: #021501;
+  padding: 21px;
+  margin: 0 20px 20px 20px;
 }
 
 #combat-log {
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: var(--text-green);
+  font-size: 13px;
+  line-height: 18px;
+  color: #17D773;
+}
+
+.combat-round-header {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  color: #F2FFC5;
+  margin: 10px 0;
+}
+
+.combat-round-text {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  color: #17D773;
+  margin-bottom: 24px;
 }
 
 #combat-loot {
-  flex-shrink: 0;
+  margin: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 0, 0.1);
+  border: 1px solid var(--warning-yellow);
 }
 
-#combat-actions,
+#loot-description {
+  color: var(--warning-yellow);
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Combat Action Buttons */
+#combat-actions {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+#combat-actions button {
+  flex: 1;
+  height: 51px;
+}
+
 #combat-continue-section {
-  flex-shrink: 0;
-  min-height: 50px; /* Reserve space even when hidden to prevent resize */
+  padding: 20px;
+  padding-top: 0;
 }
 
 /* === COMMODITY STYLING === */
