@@ -126,16 +126,7 @@ const STATIONS = [
     description: "Small independent outpost",
     position: { x: 369, y: 18 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.8,
-      "booze": 1.2,
-      "cognex": 0.9,
-      "credentials": 1.1,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_11",
@@ -144,16 +135,7 @@ const STATIONS = [
     description: "Forgotten waypoint station",
     position: { x: 109, y: 82 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 1.1,
-      "booze": 0.7,
-      "cognex": 1.3,
-      "credentials": 0.9,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_9",
@@ -162,16 +144,7 @@ const STATIONS = [
     description: "Damaged but functional dock",
     position: { x: 456, y: 128 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.9,
-      "booze": 1.1,
-      "cognex": 1.2,
-      "credentials": 0.8,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_10",
@@ -180,16 +153,7 @@ const STATIONS = [
     description: "Communications relay turned trading post",
     position: { x: 255, y: 159 },
     contrabandPolicy: "neutral",
-    priceModifiers: {
-      "croakers": 1.0,
-      "booze": 1.0,
-      "cognex": 0.85,
-      "credentials": 1.15,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   
   // MID SYSTEM (4 minor stations)
@@ -200,16 +164,7 @@ const STATIONS = [
     description: "Aging supply station",
     position: { x: 95, y: 244 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.85,
-      "booze": 0.9,
-      "cognex": 1.15,
-      "credentials": 1.1,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_3",
@@ -218,72 +173,7 @@ const STATIONS = [
     description: "Blood-stained refueling station",
     position: { x: 312, y: 246 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 1.2,
-      "booze": 1.1,
-      "cognex": 0.9,
-      "credentials": 0.95,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
-  },
-  {
-    id: "minor_12",
-    name: "Wreck Hub",
-    type: "minor",
-    description: "Built from salvaged ship parts",
-    position: { x: 491, y: 321 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 1.05,
-      "booze": 1.05,
-      "cognex": 1.0,
-      "credentials": 1.0,
-      "weapons": 0.85,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
-  },
-  {
-    id: "minor_2",
-    name: "Phantom Junction",
-    type: "minor",
-    description: "Barely shows on scanners",
-    position: { x: 293, y: 334 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.95,
-      "booze": 1.05,
-      "cognex": 1.05,
-      "credentials": 0.95,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
-  },
-  
-  // OUTER SYSTEM (4 minor stations)
-  {
-    id: "minor_4",
-    name: "Void Terminal",
-    type: "minor",
-    description: "Last stop before deep space",
-    position: { x: 211, y: 415 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.9,
-      "booze": 0.85,
-      "cognex": 1.1,
-      "credentials": 1.05,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_5",
@@ -292,34 +182,7 @@ const STATIONS = [
     description: "Scrappers and outlaws welcome",
     position: { x: 77, y: 478 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 0.8,
-      "booze": 0.9,
-      "cognex": 1.2,
-      "credentials": 1.15,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
-  },
-  {
-    id: "minor_6",
-    name: "Drifter Nexus",
-    type: "minor",
-    description: "Nomad fleet gathering point",
-    position: { x: 240, y: 529 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 1.15,
-      "booze": 1.2,
-      "cognex": 0.95,
-      "credentials": 0.9,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
+    priceModifiers: {}
   },
   {
     id: "minor_7",
@@ -328,17 +191,46 @@ const STATIONS = [
     description: "Damaged by solar flare, still operational",
     position: { x: 455, y: 510 },
     contrabandPolicy: "safe",
-    priceModifiers: {
-      "croakers": 1.1,
-      "booze": 1.15,
-      "cognex": 0.9,
-      "credentials": 0.85,
-      "weapons": 1.0,
-      "crank": 1.0,
-      "organs": 1.0,
-      "ai_chips": 1.0
-    }
-  }
+    priceModifiers: {}
+  },
+  
+  // OUTER SYSTEM (4 minor stations)
+  {
+    id: "minor_2",
+    name: "Phantom Junction",
+    type: "minor",
+    description: "Barely shows on scanners",
+    position: { x: 293, y: 334 },
+    contrabandPolicy: "safe",
+    priceModifiers: {}
+  },
+  {
+    id: "minor_4",
+    name: "Void Terminal",
+    type: "minor",
+    description: "Last stop before deep space",
+    position: { x: 211, y: 415 },
+    contrabandPolicy: "safe",
+    priceModifiers: {}
+  },
+  {
+    id: "minor_6",
+    name: "Drifter Nexus",
+    type: "minor",
+    description: "Nomad fleet gathering point",
+    position: { x: 240, y: 529 },
+    contrabandPolicy: "safe",
+    priceModifiers: {}
+  },
+  {
+    id: "minor_12",
+    name: "Wreck Hub",
+    type: "minor",
+    description: "Built from salvaged ship parts",
+    position: { x: 491, y: 321 },
+    contrabandPolicy: "safe",
+    priceModifiers: {}
+  },
 ];
 
 const COMMODITIES = [

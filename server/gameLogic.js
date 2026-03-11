@@ -33,6 +33,11 @@ export function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+export function randomSample(array, count) {
+  const shuffled = [...array].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 // === UPGRADE HELPER FUNCTIONS ===
 
 export function getUpgradeTier(player, upgradeId) {
@@ -108,10 +113,26 @@ export function createPlayerState(username) {
 
 export function createInitialMarkets() {
   const markets = {};
+  const stationInventories = {};
   
   STATIONS.forEach(station => {
     markets[station.id] = {};
-    COMMODITIES.forEach(commodity => {
+    
+    // Determine which commodities this station sells
+    let availableCommodities;
+    if (station.type === 'minor') {
+      // Minor stations: 4 random commodities
+      availableCommodities = randomSample(COMMODITIES, 4);
+    } else {
+      // Major stations: all commodities
+      availableCommodities = COMMODITIES;
+    }
+    
+    // Store inventory
+    stationInventories[station.id] = availableCommodities.map(c => c.id);
+    
+    // Create markets only for available commodities
+    availableCommodities.forEach(commodity => {
       const basePrice = commodity.basePrice;
       const stationModifier = station.priceModifiers[commodity.id] || 1.0;
       const variance = 1 + randomFloat(-0.1, 0.1);
@@ -125,51 +146,66 @@ export function createInitialMarkets() {
     });
   });
   
-  return markets;
+  return { markets, stationInventories };
 }
 
-export function addInitialAnomalies(markets, tick) {
+export function addInitialAnomalies(markets, stationInventories, tick) {
   const events = [];
   
   // Shortage
   const shortageStation = randomChoice(STATIONS);
-  const shortageCommodity = randomChoice(COMMODITIES);
-  markets[shortageStation.id][shortageCommodity.id].supply = "low";
-  markets[shortageStation.id][shortageCommodity.id].currentPrice = 
-    Math.round(markets[shortageStation.id][shortageCommodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
-  events.push({
-    type: "shortage",
-    stationId: shortageStation.id,
-    commodityId: shortageCommodity.id,
-    expiryTick: tick + randomInt(5, 7)
-  });
+  const availableShortageIds = stationInventories[shortageStation.id] || [];
+  const availableShortageCommodities = COMMODITIES.filter(c => availableShortageIds.includes(c.id));
+  
+  if (availableShortageCommodities.length > 0) {
+    const shortageCommodity = randomChoice(availableShortageCommodities);
+    markets[shortageStation.id][shortageCommodity.id].supply = "low";
+    markets[shortageStation.id][shortageCommodity.id].currentPrice = 
+      Math.round(markets[shortageStation.id][shortageCommodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
+    events.push({
+      type: "shortage",
+      stationId: shortageStation.id,
+      commodityId: shortageCommodity.id,
+      expiryTick: tick + randomInt(5, 7)
+    });
+  }
 
   // Surplus
   const surplusStation = randomChoice(STATIONS);
-  const surplusCommodity = randomChoice(COMMODITIES);
-  markets[surplusStation.id][surplusCommodity.id].supply = "high";
-  markets[surplusStation.id][surplusCommodity.id].currentPrice = 
-    Math.round(markets[surplusStation.id][surplusCommodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
-  events.push({
-    type: "glut",
-    stationId: surplusStation.id,
-    commodityId: surplusCommodity.id,
-    expiryTick: tick + randomInt(5, 7)
-  });
+  const availableSurplusIds = stationInventories[surplusStation.id] || [];
+  const availableSurplusCommodities = COMMODITIES.filter(c => availableSurplusIds.includes(c.id));
+  
+  if (availableSurplusCommodities.length > 0) {
+    const surplusCommodity = randomChoice(availableSurplusCommodities);
+    markets[surplusStation.id][surplusCommodity.id].supply = "high";
+    markets[surplusStation.id][surplusCommodity.id].currentPrice = 
+      Math.round(markets[surplusStation.id][surplusCommodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
+    events.push({
+      type: "glut",
+      stationId: surplusStation.id,
+      commodityId: surplusCommodity.id,
+      expiryTick: tick + randomInt(5, 7)
+    });
+  }
 
   // Maybe a price surge
   if (Math.random() > 0.5) {
     const surgeStation = randomChoice(STATIONS);
-    const surgeCommodity = randomChoice(COMMODITIES);
-    markets[surgeStation.id][surgeCommodity.id].demand = "high";
-    markets[surgeStation.id][surgeCommodity.id].currentPrice = 
-      Math.round(markets[surgeStation.id][surgeCommodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
-    events.push({
-      type: "surge",
-      stationId: surgeStation.id,
-      commodityId: surgeCommodity.id,
-      expiryTick: tick + randomInt(3, 5)
-    });
+    const availableSurgeIds = stationInventories[surgeStation.id] || [];
+    const availableSurgeCommodities = COMMODITIES.filter(c => availableSurgeIds.includes(c.id));
+    
+    if (availableSurgeCommodities.length > 0) {
+      const surgeCommodity = randomChoice(availableSurgeCommodities);
+      markets[surgeStation.id][surgeCommodity.id].demand = "high";
+      markets[surgeStation.id][surgeCommodity.id].currentPrice = 
+        Math.round(markets[surgeStation.id][surgeCommodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
+      events.push({
+        type: "surge",
+        stationId: surgeStation.id,
+        commodityId: surgeCommodity.id,
+        expiryTick: tick + randomInt(3, 5)
+      });
+    }
   }
   
   return events;
@@ -177,7 +213,7 @@ export function addInitialAnomalies(markets, tick) {
 
 // === TICK SYSTEM ===
 
-export function processTick(markets, activeEvents, tick) {
+export function processTick(markets, activeEvents, stationInventories, tick) {
   const newMarkets = deepClone(markets);
   let newEvents = [...activeEvents];
   
@@ -186,9 +222,13 @@ export function processTick(markets, activeEvents, tick) {
     if (event.expiryTick <= tick) {
       // Restore market to normal
       if (event.type === "shortage" || event.type === "glut") {
-        newMarkets[event.stationId][event.commodityId].supply = "normal";
+        if (newMarkets[event.stationId]?.[event.commodityId]) {
+          newMarkets[event.stationId][event.commodityId].supply = "normal";
+        }
       } else if (event.type === "surge") {
-        newMarkets[event.stationId][event.commodityId].demand = "normal";
+        if (newMarkets[event.stationId]?.[event.commodityId]) {
+          newMarkets[event.stationId][event.commodityId].demand = "normal";
+        }
       }
       return false;
     }
@@ -198,7 +238,10 @@ export function processTick(markets, activeEvents, tick) {
   // Price drift toward baseline
   STATIONS.forEach(station => {
     COMMODITIES.forEach(commodity => {
-      const market = newMarkets[station.id][commodity.id];
+      // Skip if commodity not available at this station
+      const market = newMarkets[station.id]?.[commodity.id];
+      if (!market) return;
+      
       const basePrice = commodity.basePrice;
       const stationModifier = station.priceModifiers[commodity.id] || 1.0;
       const targetPrice = basePrice * stationModifier * market.variance;
@@ -212,7 +255,7 @@ export function processTick(markets, activeEvents, tick) {
   // Random event (15% chance)
   let generatedEvent = null;
   if (Math.random() < CONSTANTS.TICK_EVENT_CHANCE) {
-    const eventData = generateRandomEvent(newMarkets, newEvents, tick);
+    const eventData = generateRandomEvent(newMarkets, newEvents, stationInventories, tick);
     if (eventData) {
       newEvents.push(eventData.event);
       generatedEvent = eventData.description;
@@ -226,13 +269,18 @@ export function processTick(markets, activeEvents, tick) {
   };
 }
 
-export function generateRandomEvent(markets, activeEvents, tick) {
+export function generateRandomEvent(markets, activeEvents, stationInventories, tick) {
   const roll = Math.random();
   
   if (roll < 0.40) {
     // Price surge
     const station = randomChoice(STATIONS);
-    const commodity = randomChoice(COMMODITIES);
+    const availableCommodityIds = stationInventories[station.id] || [];
+    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+    
+    if (availableCommodities.length === 0) return null;
+    
+    const commodity = randomChoice(availableCommodities);
     markets[station.id][commodity.id].demand = "high";
     markets[station.id][commodity.id].currentPrice = 
       Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
@@ -252,7 +300,12 @@ export function generateRandomEvent(markets, activeEvents, tick) {
   } else if (roll < 0.65) {
     // Shortage
     const station = randomChoice(STATIONS);
-    const commodity = randomChoice(COMMODITIES);
+    const availableCommodityIds = stationInventories[station.id] || [];
+    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+    
+    if (availableCommodities.length === 0) return null;
+    
+    const commodity = randomChoice(availableCommodities);
     markets[station.id][commodity.id].supply = "low";
     markets[station.id][commodity.id].currentPrice = 
       Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
@@ -272,7 +325,12 @@ export function generateRandomEvent(markets, activeEvents, tick) {
   } else {
     // Glut
     const station = randomChoice(STATIONS);
-    const commodity = randomChoice(COMMODITIES);
+    const availableCommodityIds = stationInventories[station.id] || [];
+    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+    
+    if (availableCommodities.length === 0) return null;
+    
+    const commodity = randomChoice(availableCommodities);
     markets[station.id][commodity.id].supply = "high";
     markets[station.id][commodity.id].currentPrice = 
       Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);

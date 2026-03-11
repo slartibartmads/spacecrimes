@@ -98,7 +98,7 @@ function advanceTick() {
   const state = getServerState();
   
   // Process tick for markets and events
-  const tickResult = processTick(state.markets, state.activeEvents, state.tick);
+  const tickResult = processTick(state.markets, state.activeEvents, state.stationInventories, state.tick);
   
   // Update server state
   updateMarkets(tickResult.markets);

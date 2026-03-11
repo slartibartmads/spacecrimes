@@ -560,7 +560,12 @@ function renderStation() {
   };
   
   COMMODITIES.forEach(commodity => {
-    const marketData = gameState.markets[station.id][commodity.id];
+    // Skip if commodity not available at this station
+    const marketData = gameState.markets[station.id]?.[commodity.id];
+    if (!marketData) {
+      return;
+    }
+    
     const playerQuantity = playerState.cargo[commodity.id] || 0;
     
     const row = document.createElement('tr');

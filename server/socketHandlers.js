@@ -146,6 +146,7 @@ function handleJoin(socket, data, callback, io) {
     success: true,
     playerState: getPlayer(socket.id),
     markets: state.markets,
+    stationInventories: state.stationInventories,
     activeEvents: state.activeEvents,
     tick: state.tick,
     players: getAllPublicPlayerInfo()

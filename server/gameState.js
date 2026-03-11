@@ -4,6 +4,7 @@ import { createInitialMarkets, addInitialAnomalies, calculateNetWorth } from './
  * Server state structure:
  * {
  *   markets: {},              // Shared market state (all commodities at all stations)
+ *   stationInventories: {},   // Which commodities are available at each station { stationId: [commodityId, ...] }
  *   activeEvents: [],         // Active market events affecting prices
  *   tick: 0,                  // Global game clock
  *   players: {},              // All connected players { socketId: playerState }
@@ -21,12 +22,13 @@ let serverState = null;
  * Initialize server state
  */
 export function initializeServerState() {
-  const markets = createInitialMarkets();
+  const { markets, stationInventories } = createInitialMarkets();
   const tick = 0;
-  const activeEvents = addInitialAnomalies(markets, tick);
+  const activeEvents = addInitialAnomalies(markets, stationInventories, tick);
   
   serverState = {
     markets,
+    stationInventories,
     activeEvents,
     tick,
     players: {},
