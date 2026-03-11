@@ -991,7 +991,7 @@ function renderActivityFeed() {
     const div = document.createElement('div');
     div.classList.add('log-entry', 'activity-entry');
     div.classList.add(activity.type);
-    div.textContent = `[ACTIVITY] ${activity.message}`;
+    div.innerHTML = `[ACTIVITY] ${activity.message}`;
     activityLogContent.insertBefore(div, activityLogContent.firstChild);
   });
   
