@@ -793,7 +793,7 @@ function renderUpgrades() {
     div.appendChild(description);
     
     const button = document.createElement('button');
-    button.textContent = isMaxTier ? 'MAX TIER' : `BUY: ${nextTierCost}cr`;
+    button.textContent = isMaxTier ? 'MAX TIER' : `BUY (${nextTierCost}cr)`;
     button.disabled = isMaxTier || playerState.credits < nextTierCost;
     button.addEventListener('click', () => handleBuyUpgrade(upgrade.id));
     div.appendChild(button);
