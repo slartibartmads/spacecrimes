@@ -114,18 +114,62 @@ export function createPlayerState(username) {
 export function createInitialMarkets() {
   const markets = {};
   const stationInventories = {};
+  const minorStationModifiers = {}; // Track random modifiers for minor stations
   
   STATIONS.forEach(station => {
     markets[station.id] = {};
     
     // Determine which commodities this station sells
     let availableCommodities;
+    let stationModifiers = {}; // Modifiers to use for this station
+    
     if (station.type === 'minor') {
-      // Minor stations: 4 random commodities
-      availableCommodities = randomSample(COMMODITIES, 4);
+      // Minor stations: 3 random commodities
+      availableCommodities = randomSample(COMMODITIES, 3);
+      
+      // Generate random price modifiers for minor stations (0.85-1.15x)
+      // Give 1-2 commodities slight specializations
+      const specializedCount = randomInt(1, 2);
+      const specializedCommodities = randomSample(availableCommodities, specializedCount);
+      
+      availableCommodities.forEach(commodity => {
+        if (specializedCommodities.includes(commodity)) {
+          // Random modifier between 0.85 and 1.15
+          stationModifiers[commodity.id] = randomFloat(0.85, 1.15);
+        } else {
+          stationModifiers[commodity.id] = 1.0;
+        }
+      });
+      
+      // Store for later reference
+      minorStationModifiers[station.id] = stationModifiers;
     } else {
-      // Major stations: all commodities
-      availableCommodities = COMMODITIES;
+      // Major stations: 6 commodities - prioritize those with meaningful modifiers (not 1.0)
+      const withModifiers = COMMODITIES.filter(c => 
+        station.priceModifiers[c.id] !== undefined && 
+        station.priceModifiers[c.id] !== 1.0
+      );
+      const neutral = COMMODITIES.filter(c => 
+        station.priceModifiers[c.id] === 1.0
+      );
+      
+      // If we have 6+ non-neutral, use top 6 by how far they deviate from 1.0
+      if (withModifiers.length >= 6) {
+        // Sort by deviation from 1.0 (most specialized first)
+        withModifiers.sort((a, b) => {
+          const aDeviation = Math.abs(station.priceModifiers[a.id] - 1.0);
+          const bDeviation = Math.abs(station.priceModifiers[b.id] - 1.0);
+          return bDeviation - aDeviation;
+        });
+        availableCommodities = withModifiers.slice(0, 6);
+      } else {
+        // Use all non-neutral, then fill with random neutral to reach 6
+        const needed = 6 - withModifiers.length;
+        const selectedNeutral = randomSample(neutral, needed);
+        availableCommodities = [...withModifiers, ...selectedNeutral];
+      }
+      
+      stationModifiers = station.priceModifiers;
     }
     
     // Store inventory
@@ -134,7 +178,7 @@ export function createInitialMarkets() {
     // Create markets only for available commodities
     availableCommodities.forEach(commodity => {
       const basePrice = commodity.basePrice;
-      const stationModifier = station.priceModifiers[commodity.id] || 1.0;
+      const stationModifier = stationModifiers[commodity.id] || 1.0;
       const variance = 1 + randomFloat(-0.1, 0.1);
       
       markets[station.id][commodity.id] = {
@@ -146,7 +190,7 @@ export function createInitialMarkets() {
     });
   });
   
-  return { markets, stationInventories };
+  return { markets, stationInventories, minorStationModifiers };
 }
 
 export function addInitialAnomalies(markets, stationInventories, tick) {

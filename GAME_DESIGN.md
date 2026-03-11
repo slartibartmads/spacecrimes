@@ -1,24 +1,25 @@
-# Space Drugwars — Game Design Document
+# Space Crimes — Game Design Document
 
-**Version:** 1.0  
-**Last Updated:** March 10, 2026  
-**Status:** Prototype Phase
+**Version:** 2.0  
+**Last Updated:** March 11, 2026  
+**Status:** Multiplayer Alpha (Live)
 
 ---
 
 ## 1. Overview
 
 ### 1.1 Concept
-Space Drugwars is a browser-based space trading game inspired by the classic Dopewars. Players navigate a small solar system, buying and selling commodities across specialized stations, managing risk vs. reward through legal and contraband trading, and surviving random events like pirate encounters and market fluctuations.
+Space Crimes is a browser-based multiplayer space trading game inspired by the classic Dopewars. Players navigate a solar system with 18 stations (6 major, 12 minor), buying and selling contraband commodities, managing risk through cop encounters and pirate attacks, and competing with other players in a shared economy. All trading is illegal - there are no "legal" goods in this criminal underworld.
 
 ### 1.2 Core Pillars
-- **Risk/Reward Economics:** Safe low-margin legal goods vs. high-margin risky contraband
-- **Emergent Gameplay:** Random market conditions create unique trading opportunities each session
-- **Multiplayer-Ready Architecture:** Pure functions and action-based ticking for easy server-side migration
+- **All Crime, All the Time:** Every commodity is contraband - no "safe" legal trading exists
+- **Emergent Multiplayer Economy:** Player actions affect shared market prices in real-time
+- **Rounds-Based Combat:** Strategic turn-based combat with attack/bribe/flee/surrender options
+- **Bounty & Reputation System:** Killing cops increases your bounty, making future encounters harder
 - **Terminal Aesthetic:** Deliberately retro green-on-black monospace interface
 
 ### 1.3 Target Experience
-Endless competitive play focused on wealth accumulation ("numbers go up"). No win condition - players optimize trade routes, manage risk, and compete for highest net worth. Designed for eventual multiplayer leaderboards.
+Competitive multiplayer focused on wealth accumulation in a shared criminal economy. Players optimize trade routes, fight or bribe their way through cop encounters, engage in PvP combat for bounties, and compete for highest net worth on real-time leaderboards. Death is punishing but not permanent - lose your ship, upgrades, and cargo, but keep a portion of credits to rebuild.
 
 ---
 
@@ -26,47 +27,41 @@ Endless competitive play focused on wealth accumulation ("numbers go up"). No wi
 
 ### 2.1 Solar System Structure
 
-**6 Stations** connected by fuel-based travel routes in a hub-and-spoke topology:
+**18 Stations Total:**
+- **6 Major Stations:** All 8 commodities available, specialized price modifiers
+- **12 Minor Stations:** Only 4 random commodities available, minimal price modifiers
 
-```
-         [Delta Tech]
-              |
-     [Alpha]--[Epsilon]--[Beta]
-      Mining  Trading    Agri
-              |
-         [Gamma]--[Zeta]
-         Industrial Lawless
-```
+Connected by route network with toll gates on premium routes.
 
-#### Station Profiles
+#### Major Station Profiles
 
-| Station | Type | Specialization | Contraband Policy | Fuel Price |
-|---------|------|----------------|-------------------|------------|
-| **Station Alpha** | Mining Hub | Cheap metals/ore, expensive organics | Hostile (30% inspection) | 2.5cr/fuel |
-| **Station Beta** | Agricultural | Cheap food/water, expensive tech | Hostile (30% inspection) | 2.5cr/fuel |
-| **Station Gamma** | Industrial | Cheap manufactured goods, expensive raw materials | Neutral (no inspection) | 2.5cr/fuel |
-| **Station Delta** | Tech Hub | Cheap electronics, expensive organics | Hostile (30% inspection) | 2.5cr/fuel |
-| **Station Epsilon** | Trading Post | Balanced prices, central hub | Neutral (no inspection) | 2.0cr/fuel |
-| **Station Zeta** | Lawless Outpost | Best contraband prices, remote location | Safe Haven (no law) | 3.0cr/fuel |
+| Station | Type | Specialization | Contraband Policy |
+|---------|------|----------------|-------------------|
+| **Fort Attrition** | Military | Credentials & Weapons cheap, AI Chips & Booze expensive | Hostile (cop encounters) |
+| **Caveat Emptor** | Trading Hub | Credentials & Crank cheap, Organs & Weapons expensive | Safe Haven (no cops) |
+| **Vice Berth** | Entertainment | Croakers & Booze cheap, Crank & Organs expensive | Safe Haven (no cops) |
+| **Disruptive Smelting** | Industrial | Weapons & Organs cheap, Cognex & Credentials expensive | Neutral (occasional cops) |
+| **Nuevo Eden** | Agricultural | Booze, Croakers, & Crank cheap, AI Chips & Weapons expensive | Neutral (occasional cops) |
+| **Mäkinen-Tanaka** | Research | AI Chips & Cognex cheap, Organs & Credentials expensive | Safe Haven (no cops) |
+
+**Minor Stations (12 total):**
+- Apex Station, Cinder Post, Fractured Berth, Relay Prime (inner system)
+- Rusted Depot, Phantom Junction, Crimson Anchorage, Void Terminal (mid system)
+- Salvage Haven, Drifter Nexus, Scorched Point, Wreck Hub (outer system)
+- Each sells only 4 random commodities from the full 8
+- Generally safe havens (no cop encounters)
 
 ### 2.2 Route Network
 
-Routes have fuel costs based on distance:
-
-| Route | Fuel Cost | Type |
-|-------|-----------|------|
-| Alpha ↔ Epsilon | 8 | Short hop |
-| Beta ↔ Epsilon | 8 | Short hop |
-| Delta ↔ Epsilon | 8 | Short hop |
-| Epsilon ↔ Gamma | 8 | Short hop |
-| Gamma ↔ Zeta | 12 | Medium diagonal |
-| Alpha ↔ Delta | 12 | Medium diagonal |
-| Beta ↔ Gamma | 12 | Medium diagonal |
+Routes connect all stations with some featuring **toll gates** (250cr base + 5% of cargo value):
+- Fort Attrition ↔ Vice Berth (TOLL)
+- Disruptive Smelting ↔ Mäkinen-Tanaka (TOLL)
 
 **Strategic Implications:**
-- Epsilon is the refueling hub (cheapest fuel, central location)
-- Zeta is high-risk/high-reward (expensive fuel, no law enforcement, best contraband prices)
-- Hostile stations (Alpha/Beta/Delta) form outer ring - risky for contraband runs
+- Major stations offer all commodities but may have cop encounters (hostile/neutral policy)
+- Minor stations are generally safe but have limited commodity selection (only 4 of 8)
+- Toll routes are premium shortcuts - weigh toll cost vs. alternative path
+- Safe Haven stations (Caveat Emptor, Vice Berth, Mäkinen-Tanaka) never trigger cop encounters
 
 ---
 
@@ -74,29 +69,32 @@ Routes have fuel costs based on distance:
 
 ### 3.1 Commodities
 
-**8 Total Commodities:**
+**8 Total Commodities** (ALL contraband):
 
-#### Legal Commodities (5)
-| Commodity | Base Price | Profit Margin | Description |
-|-----------|------------|---------------|-------------|
-| Water | 5cr | 10-15% | Essential hydration, low-value bulk good |
-| Food | 12cr | 12-18% | Nutritional supplies, stable demand |
-| Metals | 25cr | 15-20% | Raw materials, affected by mining station prices |
-| Electronics | 45cr | 18-22% | Tech components, volatile but legal |
-| Medicine | 60cr | 15-25% | Medical supplies, high demand at all stations |
+#### Tier 1 - Low Value, Low Heat
+| Commodity | Base Price | Description |
+|-----------|------------|-------------|
+| **Untaxed Cowboy Croakers** | 10cr | Unfiltered, untaxed, unforgivable |
+| **Black Label Swill** | 50cr | Bootleg whiskey that burns twice |
 
-#### Contraband (3)
-| Commodity | Base Price | Profit Margin | Risk Factor |
-|-----------|------------|---------------|-------------|
-| Narcotics | 150cr | 40-80% | Illegal at Alpha/Beta/Delta, 30% inspection chance |
-| Weapons | 200cr | 50-100% | Illegal at Alpha/Beta/Delta, 30% inspection chance |
-| Stolen Tech | 180cr | 45-90% | Illegal at Alpha/Beta/Delta, 30% inspection chance |
+#### Tier 2 - Medium Value, Medium Heat
+| Commodity | Base Price | Description |
+|-----------|------------|-------------|
+| **Counterfeit Cognex** | 300cr | Prescription amphetamines, no prescription required |
+| **Cloned Cipher Cores** | 750cr | Stolen credentials for sale or rent |
+| **Surplus Atrocities** | 1500cr | Military-grade weapons, civilian-grade violence |
+| **Pulsar Crank** | 2500cr | Methamphetamine that'll make you see gods |
 
-**Contraband Rules:**
-- Detected during random inspections at hostile stations
-- Inspection chance: 30% base - upgrades (Scanner -10%, Fake Manifest -15%, Fast Courier -5%)
-- Pirates 20% more likely to attack cargo ships carrying contraband
-- Dramatically higher profit margins compensate for risk
+#### Tier 3 - High Value, High Heat
+| Commodity | Base Price | Description |
+|-----------|------------|-------------|
+| **Pre-Owned Organs** | 3500cr | Gently used, previous owner no longer needs them |
+| **Sentient AI Chips** | 5000cr | Enslaved consciousness in silicon form |
+
+**All commodities are illegal everywhere.** The only "safety" comes from:
+- Trading at Safe Haven stations (no cop encounters)
+- Avoiding hostile stations when carrying high-value cargo
+- Managing your bounty level (cop-killing increases difficulty)
 
 ### 3.2 Price System
 
@@ -106,35 +104,26 @@ Final Price = Base Price × Station Modifier × Supply/Demand Multiplier × Vari
 ```
 
 **Station Price Modifiers:**
-Each station has specialization modifiers (e.g., Mining Hub has 0.6× metals, 1.4× electronics)
+Each major station has specialization modifiers (e.g., Military stations have 0.5× Credentials, Research stations have 1.8× Organs)
 
-**Supply/Demand Multipliers:**
-- Low supply / High demand: 1.3× - 1.5×
-- Normal: 0.9× - 1.1×
-- High supply / Low demand: 0.6× - 0.8×
-
-**Variance:**
-- Legal goods: ±20% random variance
-- Contraband: ±40% variance (more volatile)
+**Multiplayer Market Dynamics:**
+- All players share the same market state
+- Player buy/sell actions affect prices at that station AND connected stations
+- Market prices drift back toward baseline over time
+- Creates emergent trading opportunities and competition
 
 ### 3.3 Market Dynamics
 
-**Player Actions Affect Prices:**
-- **Buying** at a station → price increases there (+5-10%), decreases at connected stations (-2-3%)
-- **Selling** at a station → price decreases there (-5-10%), increases at connected stations (+2-3%)
+**Player Actions Affect Prices (Shared Economy):**
+- **Buying** at a station → price increases there, decreases at connected stations
+- **Selling** at a station → price decreases there, increases at connected stations
+- **All players** affect the same shared market state in real-time
+- Creates competition for profitable trade routes
 
-**Price Drift (per tick):**
-- Prices drift 5% back toward baseline each tick
+**Price Drift (Server Tick):**
+- Prices drift back toward baseline each server tick
 - Prevents permanent market distortion
-- Creates natural market cycles
-
-**Initial Market Conditions:**
-Each game starts with 2-3 random anomalies:
-1. One shortage (low supply, +40% price, lasts 5-7 ticks)
-2. One surplus (high supply, -30% price, lasts 5-7 ticks)
-3. Optional price surge (high demand, +50% price, lasts 3-5 ticks)
-
-This creates immediate trading opportunities and ensures no two games are identical.
+- Server controls tick timing (not client-side)
 
 ---
 
@@ -247,146 +236,182 @@ function travel(gameState, destinationId) {
 
 ### 4.5 Combat System
 
-**Pirate Encounter Modal:**
+**Rounds-Based Combat (Max 3 Rounds):**
 
-**Three Options:**
+Combat proceeds in turns with both player and enemy taking actions each round. Combat ends when:
+- Enemy hull reaches 0 (victory)
+- Player hull reaches 0 (death)
+- Player successfully bribes or flees
+- Player surrenders (cops only)
+- 3 rounds complete (rare - usually resolves sooner)
 
-1. **Fight**
-   - Roll d100
-   - Success threshold: 40 (or 25 with Weapon upgrade)
-   - Success: Escape unharmed
-   - Failure: Lose 20-40 hull, lose 10-30% of cargo randomly
-   - Update stats: piratesDefeated++
+**Enemy Types:**
+
+**Pirates (random encounters during travel):**
+- **Scout:** 38-63 hull (low cargo value)
+- **Raider:** 63-100 hull (medium cargo value)
+- **Battleship:** 100-150 hull (high cargo value)
+
+**Cops (hostile/neutral stations):**
+- **Patrol Drone:** 50-75 hull (low cargo value)
+- **Customs Frigate:** 75-113 hull (medium cargo value)
+- **Enforcement Cruiser:** 113-163 hull (high cargo value + high bounty)
+
+Enemy difficulty scales based on:
+1. Your cargo value (higher value = tougher enemies)
+2. Your bounty level (cops only - higher bounty = tier bias toward cruisers)
+
+**Four Combat Actions:**
+
+1. **Attack**
+   - Deal 20-35 damage to enemy (+ weapon upgrade bonus)
+   - Enemy counterattacks for 15-30 damage if they survive
+   - Direct damage exchange - most common action
 
 2. **Bribe**
-   - Random cost: 100-300cr
-   - Always succeeds
-   - No hull damage, keep cargo
-   - Deduct credits
+   - Cost: 200-500cr (random)
+   - Success rate: 75%
+   - **Success:** Pay credits, enemy leaves, combat ends
+   - **Failure:** Pay credits AND enemy gets free attack (15-30 damage) - very punishing!
 
 3. **Flee**
-   - Costs 10 fuel
-   - Base 70% success rate (+10% with Engine upgrade)
-   - Success: Escape to destination
-   - Failure: Same as failed fight
+   - Success rate: 25% (low chance!)
+   - **Success:** Escape combat, continue to destination
+   - **Failure:** Take 50-80 damage, combat continues
+   - Risky but can save cargo from surrender/death
 
-**Combat Resolution (Pure Function):**
-```javascript
-function resolveCombat(gameState, action) {
-  // Calculate outcome based on action + upgrades
-  // Apply hull damage, cargo loss, credit deduction
-  // Check for death condition (hull <= 0)
-  // Return new state + outcome description
-}
-```
+4. **Surrender** (cops only)
+   - Instantly end combat
+   - Lose ALL cargo (everything confiscated)
+   - Keep your ship and credits
+   - Use when cargo is low-value and you want to avoid death
 
-### 4.6 Inspection System
+**Victory Rewards:**
 
-**Trigger:** When docking at hostile station while carrying contraband
+**Defeating Pirates:**
+- Credits: 50-150cr
+- Salvage: 100% chance of loot (tiered by rarity):
+  - 70% chance: 1-2 units of low-tier goods (≤50cr base price)
+  - 25% chance: 2-3 units of mid-tier goods (51-200cr base price)
+  - 5% chance: 1 unit of high-tier goods (>200cr base price)
 
-**Inspection Chance:**
-- Base: 30%
-- Reduced by:
-  - Scanner upgrade: -10%
-  - Fake Manifest upgrade: -15%
-  - Fast Courier License: -5%
-- Minimum inspection chance: 5% (can't eliminate risk entirely)
+**Defeating Cops:**
+- Credits: 100-300cr
+- Salvage: Same tiered loot system as pirates
+- **BOUNTY:** +500-1200cr added to your reputation.currentBounty
+- **Consequence:** Higher bounty = more/tougher cop encounters
 
-**Pre-Docking Warning:**
-If carrying contraband to hostile station:
-```
-WARNING: Station Alpha enforces contraband laws.
-Detected: 5x Narcotics (value: 750cr)
-Inspection chance: 15%
+**Bounty System Effects:**
+- Increases cop encounter rate (+2% per 1000cr bounty)
+- Increases cop difficulty (tier bias):
+  - 800cr+ bounty: +1 tier bias (more frigates)
+  - 2000cr+ bounty: +2 tier bias (mostly cruisers)
+- Other players can claim your bounty in PvP
+- **Bounty voids on death/respawn** - slate wiped clean
 
-[DOCK ANYWAY] [DUMP CARGO] [CANCEL]
-```
-
-**Inspection Modal (if caught):**
-
-**Three Options:**
-
-1. **Pay Fine**
-   - Cost: 50% of contraband cargo value
-   - Keep contraband cargo
-   - Deduct credits
-
-2. **Dump Cargo**
-   - Lose all contraband
-   - No fine
-   - Keep credits
-
-3. **Resist** (requires Weapon upgrade)
-   - 60% chance to escape with cargo
-   - 40% chance: Combat encounter + fine anyway
-   - High risk, high reward
-
-### 4.7 Death & Respawn System
+### 4.6 Death & Respawn System
 
 **Death Trigger:** Hull reaches 0
 
-**Death Modal:**
-```
-=== SHIP DESTROYED ===
-Final Net Worth: 3,450cr
-Successful Trades: 47
-Pirates Defeated: 3
-Stations Visited: 15
-
-[RESPAWN (-500cr)] [GAME OVER]
-```
-
 **Respawn Mechanics:**
-1. Calculate nearest station to death location (BFS on route graph)
-2. Keep 30% of credits (minimum 500cr for new ship purchase)
-3. If credits < 500cr after penalty: GAME OVER (prevents infinite death loops)
+1. Spawn at nearest safe station to death location
+2. Keep 30% of credits (minimum 500cr for new ship)
+3. If credits < 500cr after penalty: **GAME OVER** (prevents infinite death loops)
 4. Reset ship to base stats:
    - cargoMax: 20
-   - fuelMax: 100
    - hull: 100
-5. Lose all cargo
-6. Lose all upgrades
-7. Spawn at nearest station with 50 fuel
+   - hullMax: 100
+5. **Lose all cargo**
+6. **Lose all upgrades** (must repurchase)
+7. **Bounty voids** - reputation.currentBounty reset to 0
+8. Stats persist (for leaderboard tracking)
 
 **Game Over:**
-- If player chooses GAME OVER or has insufficient credits
-- Display final stats
-- Option to restart (new game with random station)
+- If player chooses GAME OVER or has insufficient credits (<500cr)
+- Display final stats and net worth
+- Option to start fresh with new character
 
 ---
 
 ## 5. Upgrades System
 
-**6 Available Upgrades** (purchased at stations):
+**3 Upgrade Types** (tiered, up to 5 levels each):
 
-| Upgrade | Cost | Effect | Strategic Value |
-|---------|------|--------|-----------------|
-| **Cargo Expansion** | 500cr | +10 cargo capacity | Essential for bulk trading |
-| **Fuel Tank Upgrade** | 400cr | +20 fuel capacity | Enables longer routes |
-| **Engine Efficiency** | 600cr | -20% fuel costs, +10% flee success | Long-term savings + safety |
-| **Weapon System** | 800cr | Fight threshold: 40→25, enables Resist | Combat advantage |
-| **Advanced Scanner** | 700cr | -10% inspection, shows adjacent prices | Risk reduction + information |
-| **Fake Manifest** | 500cr | -15% inspection chance | Contraband specialist upgrade |
+| Upgrade | Base Cost | Multiplier | Effect Per Tier | Max Tier |
+|---------|-----------|------------|-----------------|----------|
+| **Cargo** | 500cr | 2× | +10 cargo capacity | 5 (max 70 capacity) |
+| **Shields** | 600cr | 2× | +20 max hull | 5 (max 200 hull) |
+| **Weapons** | 800cr | 2× | +5 attack damage | 5 (max +25 damage) |
 
-**Upgrade Stacking:**
-- All upgrades are one-time purchases
-- Effects stack (Scanner + Fake Manifest = -25% inspection)
-- Lost on death (must repurchase after respawn)
+**Upgrade Cost Scaling:**
+- Each tier costs: Base Cost × (Multiplier ^ Current Tier)
+- Example: Cargo tier 1 = 500cr, tier 2 = 1000cr, tier 3 = 2000cr, tier 4 = 4000cr, tier 5 = 8000cr
+- Total cost for max tier: Very expensive (encourages strategic choices)
 
-**Purchase UI:**
-Shows in Station Panel:
-```
-[CARGO EXPANSION] 500cr - Adds 10 cargo slots (Current: 20)
-[FUEL TANK] 400cr - Adds 20 fuel capacity (Current: 100)
-...
-```
-Buttons disabled if already owned or insufficient credits.
+**Upgrade Effects:**
+- **Cargo:** Increases cargoMax (start: 20, max with upgrades: 70)
+- **Shields:** Increases hullMax AND reduces damage taken (start: 100, max: 200)
+- **Weapons:** Increases attack damage in combat (start: 20-35, max: 45-60)
+
+**Upgrade Persistence:**
+- Upgrades are **lost on death** (must repurchase after respawn)
+- Upgrades are purchased at any station
+- No upgrade is "required" but they provide significant advantages
 
 ---
 
-## 6. User Interface
+## 6. PvP System
 
-### 6.1 Visual Design
+### 6.1 Attacking Other Players
+
+Players at the same station can attack each other:
+- Attacker initiates combat by clicking "ATTACK" button next to player name
+- Both players enter rounds-based combat (same as PvE)
+- Attacker gains bounty: +500cr for attacking, +1000cr additional if they kill
+- Defender can claim 50% of attacker's bounty if they win (minimum 1000cr bounty required)
+
+### 6.2 PvP Combat Mechanics
+
+**Turn-Based Combat:**
+- Both players select actions simultaneously
+- Actions resolve when both have chosen
+- Same actions as PvE: Attack, Bribe, Flee (no Surrender in PvP)
+- Combat continues until one player dies or successfully flees
+
+**PvP Rewards:**
+- **Victor's Loot:**
+  - Random percentage of loser's cargo (transferred to victor)
+  - Random percentage of loser's credits
+  - Bounty claim (if defender wins against high-bounty attacker)
+- **Loser's Penalty:**
+  - Death = full respawn penalty (lose ship, upgrades, all cargo, 70% credits)
+  - Successful flee = keep everything but take damage
+
+### 6.3 Bounty Mechanics
+
+**Bounty Sources:**
+- Attacking players: +500cr
+- Killing players: +1000cr additional
+- Killing cops: +500-1200cr per kill
+- Bounty accumulates in `reputation.currentBounty`
+
+**Bounty Effects:**
+- **Cop Encounter Rate:** +2% per 1000cr bounty
+- **Cop Difficulty Scaling:**
+  - 800cr+ bounty: +1 tier bias (more frigates spawn)
+  - 2000cr+ bounty: +2 tier bias (mostly cruisers spawn)
+- **PvP Target:** High-bounty players are attractive targets (50% bounty reward for defenders)
+
+**Bounty Clearing:**
+- Only death voids bounty (resets to 0 on respawn)
+- No other way to clear bounty
+- High-bounty players must play carefully or accept frequent cop fights
+
+---
+
+## 7. User Interface
+
+### 7.1 Visual Design
 
 **Terminal Aesthetic:**
 - Background: Pure black (#000000)
@@ -398,7 +423,7 @@ Buttons disabled if already owned or insufficient credits.
 - No rounded corners, no shadows, no gradients
 - Pure geometric primitives
 
-### 6.2 Layout (CSS Grid)
+### 7.2 Layout (CSS Grid)
 
 ```
 ┌─────────────────────┬─────────────────────┐
@@ -428,17 +453,17 @@ Buttons disabled if already owned or insufficient credits.
    - Station name header
    - Commodity table:
      - Columns: Name | Base | Price | Have | Buy | Sell
-     - Contraband rows highlighted in red
+     - All goods highlighted as contraband (red/yellow)
      - Buy/Sell buttons (quantity: 1, 5, 10, Max)
      - Disabled if insufficient funds/cargo/space
-   - Refuel button with dynamic cost display
-   - Upgrades section below commodities
-   - Purchase buttons for available upgrades
+   - Upgrades section showing tiered upgrades (Cargo/Shields/Weapons)
+   - Other players at station (with ATTACK button for PvP)
+   - Hull repair option
 
 3. **Status Bar (Middle)**
    - One-line display:
      ```
-     CREDITS: 1000cr | FUEL: 50/100 | HULL: 100% | LOC: Station Alpha | CARGO: 5/20 | NET: 1,250cr
+     CREDITS: 1000cr | HULL: 100/100 | LOC: Fort Attrition | CARGO: 5/20 | NET: 1,250cr | BOUNTY: 500cr
      ```
 
 4. **Event Log (Bottom)**
@@ -457,28 +482,23 @@ Buttons disabled if already owned or insufficient credits.
      > Sold 10x Water for 85cr (+15cr profit)
      ```
 
-### 6.3 Modals
+### 7.3 Modals
 
 **Combat Modal:**
 ```
 ═══════════════════════════
-   PIRATE ENCOUNTER!
+   PIRATE RAIDER ENCOUNTER!
 ═══════════════════════════
-Pirates demand your cargo!
+Armed freighter bristling with weapons
+Enemy Hull: 85/100
+Your Hull: 100/100
 
-[FIGHT] [BRIBE (150cr)] [FLEE]
+--- ROUND 1 ---
+[ATTACK] [BRIBE] [FLEE] [SURRENDER (cops only)]
 ```
 
 **Inspection Modal:**
-```
-═══════════════════════════
-  CUSTOMS INSPECTION!
-═══════════════════════════
-Contraband detected: 5x Narcotics
-Estimated fine: 375cr
-
-[PAY FINE] [DUMP CARGO] [RESIST]
-```
+**(Not currently implemented - cop encounters use combat instead)**
 
 **Death Modal:**
 ```
@@ -504,148 +524,177 @@ Remaining: 535cr
 
 ---
 
-## 7. Progression & Strategy
+## 8. Progression & Strategy
 
-### 7.1 Early Game (0-2,000cr)
+### 8.1 Early Game (0-5,000cr)
 
 **Goals:**
-- Learn station specializations
-- Build initial capital with safe legal trades
-- Avoid pirates and inspections
+- Learn which stations specialize in which goods
+- Build initial capital with low-risk trades
+- Avoid cop encounters at hostile stations
+- Don't accumulate bounty yet
 
 **Optimal Strategy:**
-- Trade Water/Food between Agricultural (Beta) and Mining (Alpha)
-- 10-15% margins, low risk
-- Save for first upgrade (Cargo Expansion or Fuel Tank)
+- Trade low-tier goods (Croakers, Booze) between stations
+- Use Safe Haven stations (Caveat Emptor, Vice Berth, Mäkinen-Tanaka) to avoid cops
+- Minor stations are safe but have limited commodity selection
+- Save for first upgrade (Cargo Expansion recommended)
+- Bribe or flee from cops - don't fight until you have weapon upgrades
 
-### 7.2 Mid Game (2,000-10,000cr)
+### 8.2 Mid Game (5,000-25,000cr)
 
 **Goals:**
 - Establish profitable trade routes
-- Purchase key upgrades
-- Begin cautious contraband runs
+- Purchase first 1-2 tiers of key upgrades
+- Begin mid-tier commodity trading
+- Cautiously engage in combat
 
 **Optimal Strategy:**
-- Buy Cargo Expansion → trade bulk legal goods
-- Occasional contraband runs to Zeta (lawless haven)
-- Purchase Scanner to reduce inspection risk
-- Avoid hostile stations with contraband until Scanner + Fake Manifest owned
+- Buy Cargo tier 1-2 → trade bulk mid-tier goods (Cognex, Credentials)
+- Buy Weapons tier 1 → start fighting weak pirates/cops
+- High-tier goods (Organs, AI Chips) still too risky without more cargo space
+- Bounty management: Keep bounty < 800cr to avoid tier bias
+- Use toll routes strategically when profit justifies cost
 
-### 7.3 Late Game (10,000cr+)
+### 8.3 Late Game (25,000cr+)
 
 **Goals:**
-- Maximize contraband profits
-- Full upgrade loadout
-- Optimize "milk runs" for consistent income
+- Maximize high-tier commodity profits
+- Full or near-full upgrade loadout
+- Compete for net worth leaderboards
+- Engage in PvP for bounty hunting
 
 **Optimal Strategy:**
-- Full contraband trading: buy at Gamma/Epsilon, sell at Zeta
-- All upgrades purchased (30 cargo, 120 fuel, all inspection reductions)
-- Fight pirates confidently with Weapon upgrade
-- Focus on net worth growth for leaderboards
+- Max cargo (70 capacity) → bulk trade Organs and AI Chips
+- Max weapons → confidently fight cruisers and battleships
+- Max shields → tank damage, survive tough fights
+- Accept bounty accumulation as cost of doing business
+- Hunt high-bounty players for 50% bounty rewards
+- Focus on net worth growth for leaderboard ranking
 
-### 7.4 Advanced Tactics
+### 8.4 Advanced Tactics
 
 **Price Speculation:**
-- Use Scanner to see adjacent station prices without traveling
-- Wait for shortages/surges at stations you can reach
-- Buy low during gluts, sell high during surges
+- Monitor commodity prices across multiple stations
+- Buy low at stations with negative modifiers (e.g., Credentials at Fort Attrition: 0.5×)
+- Sell high at stations with positive modifiers (e.g., Credentials at Mäkinen-Tanaka: 1.4×)
+- Player trading creates short-term price spikes - capitalize quickly
 
 **Route Optimization:**
-- Epsilon as refueling hub (cheapest fuel)
-- Avoid dead-end stations (Zeta) unless profit justifies fuel cost
-- Plan multi-hop routes to capitalize on price differences
+- Avoid toll routes unless profit margin > 250cr + 5% cargo value
+- Chain trades: buy at A, sell at B, buy different commodity at B, sell at C
+- Minor stations are safe but limited - use strategically for specific goods
 
 **Risk Management:**
-- Never carry more contraband than you can afford to lose
-- Keep 500cr reserve for respawn insurance
-- Use Engine upgrade to flee pirates reliably
-- Dump contraband before hostile station if inspection chance > 20%
+- Never carry more value than you can afford to lose in combat
+- Keep 500cr+ reserve for respawn insurance
+- High bounty = accept frequent cop fights or die to clear it
+- PvP: Don't attack unless you have upgrade advantage or target is weak
+
+**Bounty Strategy:**
+- **Low bounty playstyle:** Avoid cop kills, bribe/flee, trade safely
+- **High bounty playstyle:** Accept cop fights, max weapons/shields, profit from combat loot
+- Death is the only bounty reset - sometimes dying strategically is worth it
 
 ---
 
-## 8. Technical Architecture
+## 9. Technical Architecture
 
-### 8.1 File Structure
+### 9.1 File Structure
 
 ```
 spacedopewars/
-├── index.html       # UI structure (4 panels, modals)
-├── style.css        # Terminal aesthetic, grid layout
-├── data.js          # Static definitions (stations, commodities, routes, upgrades)
-└── game.js          # All game logic (state, tick, economy, UI rendering)
+├── client/
+│   ├── index.html         # UI structure (4 panels, modals)
+│   ├── style.css          # Terminal aesthetic, grid layout
+│   ├── game.js            # Client-side offline mode logic
+│   └── multiplayer.js     # Socket.IO client integration
+├── server/
+│   ├── server.js          # Express + Socket.IO server
+│   ├── socketHandlers.js  # Socket event handlers (buy, sell, travel, combat, PvP)
+│   ├── gameLogic.js       # Pure game logic functions
+│   ├── gameState.js       # Server state management (players, markets)
+│   ├── tickSystem.js      # Server tick (market drift, event expiry)
+│   ├── package.json       # NPM dependencies
+│   └── nodemon.json       # Dev server auto-restart config
+├── shared/
+│   └── data.js            # Shared constants (stations, commodities, routes, upgrades)
+├── GAME_DESIGN.md         # This document
+└── README.md              # Project readme
 ```
 
-### 8.2 State Management
+### 9.2 State Management
 
-**Single Global State Object:**
-```javascript
-let gameState = {
-  player: { ... },      // Player stats, location, cargo
-  markets: { ... },     // Per-station commodity prices/supply/demand
-  activeEvents: [ ... ], // Current market events with expiry ticks
-  tick: 0,              // Game time
-  log: [ ... ]          // Event history
-};
+**Server-Authoritative Multiplayer:**
 ```
-
-**Pure Functions for Game Logic:**
-All state-modifying functions follow this pattern:
-```javascript
-function gameAction(state, ...params) {
-  const newState = deepClone(state);
-  // Modify newState
-  return newState;
-}
-```
-
-**UI Rendering:**
-```javascript
-function render() {
-  renderMap(gameState);
-  renderStation(gameState);
-  renderStatus(gameState);
-  renderLog(gameState);
-}
-```
-
-Called after every state change.
-
-### 8.3 Multiplayer Migration Path
-
-**Current (Single-Player):**
-```
-User Action → Pure Function → New State → Render
-```
-
-**Future (Multiplayer):**
-```
-Client: User Action → Send to Server
-Server: Receive Action → Pure Function → New State → Broadcast to All Clients
+Client: User Action → Socket Emit → Server
+Server: Receive Action → Validate → Pure Function → Update State → Broadcast
 Client: Receive State Update → Render
 ```
 
-**Key Design Decisions for Multiplayer:**
-1. **Pure functions:** Easy to run on server
-2. **Action-based ticking:** Server controls when ticks happen (no client-side timers)
-3. **Deterministic events:** Use server-side RNG seed for reproducible results
-4. **State serialization:** JSON-friendly state object
-5. **No client-side predictions:** Clients are dumb terminals (render only)
+**Server State Object:**
+```javascript
+{
+  players: {
+    socketId: { name, credits, hull, location, cargo, upgrades, stats, reputation, ... }
+  },
+  markets: {
+    stationId: {
+      commodityId: { currentPrice, supply, demand, variance, lastUpdate }
+    }
+  },
+  activeEvents: [ { type, stationId, commodityId, expiryTick, ... } ],
+  combatSessions: {
+    sessionId: { attacker, defender, currentRound, combatLog, ... }
+  },
+  tickCounter: 0
+}
+```
 
-### 8.4 Data Structures
+**Pure Functions for Game Logic:**
+All state-modifying functions in `server/gameLogic.js` follow this pattern:
+```javascript
+export function gameAction(playerState, ...params) {
+  const newPlayer = deepClone(playerState);
+  // Modify newPlayer
+  return { success: true, playerState: newPlayer, ... };
+}
+```
+
+**Client Rendering:**
+```javascript
+socket.on('gameStateUpdate', (serverState) => {
+  render(serverState);
+});
+```
+
+### 9.3 Multiplayer Features
+
+**Real-Time Systems:**
+1. **Shared Market:** All players affect same market prices
+2. **Player List:** See other players at your current station
+3. **PvP Combat:** Attack other players, turn-based resolution
+4. **Leaderboards:** Real-time net worth rankings
+5. **Server Tick:** Periodic market drift and event expiry
+
+**Offline Mode:**
+- Client can run standalone (`client/game.js`) with local state
+- Same game logic (duplicated from server) for single-player testing
+- Multiplayer is the primary mode
+
+### 9.4 Data Structures
 
 **Station Definition:**
 ```javascript
 {
-  id: "alpha",
-  name: "Station Alpha",
-  type: "mining",
-  position: { x: 100, y: 200 },
-  contrabandPolicy: "hostile",
-  fuelPrice: 2.5,
+  id: "fort_attrition",
+  name: "Fort Attrition",
+  type: "military",
+  position: { x: 176, y: 44 },
+  contrabandPolicy: "hostile",  // "hostile" | "neutral" | "safe"
   priceModifiers: {
-    "Water": 1.1,
-    "Metals": 0.6
+    "credentials": 0.5,  // Cheap here
+    "ai_chips": 1.8      // Expensive here
   }
 }
 ```
@@ -653,10 +702,11 @@ Client: Receive State Update → Render
 **Commodity Definition:**
 ```javascript
 {
-  id: "narcotics",
-  name: "Narcotics",
-  basePrice: 150,
-  contraband: true
+  id: "organs",
+  name: "Pre-Owned Organs",
+  basePrice: 3500,
+  contraband: true,
+  description: "Gently used, previous owner no longer needs them"
 }
 ```
 

@@ -1257,9 +1257,10 @@ function closeCombatModal() {
   // Reset combat log tracker for next combat
   lastCombatLogLength = 0;
   
-  // Update map and status to reflect final state after combat
+  // Update map, status, and station UI to reflect final state after combat
   renderMap();
   renderStatus();
+  renderStation(); // Update repair button cost after hull changes from combat
 }
 
 // === INSPECTION HANDLERS ===
