@@ -428,7 +428,7 @@ function resolveCombatRound(state, combatState, action) {
       if (newState.player.upgrades.shields) damageReduction += 0.40;
       
       pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
-      newState.player.hull -= pirateDamage;
+      newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.attack_return) + ` (-${pirateDamage} your hull)\n`;
     }
@@ -449,7 +449,7 @@ function resolveCombatRound(state, combatState, action) {
       if (newState.player.upgrades.shields) damageReduction += 0.40;
       
       pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
-      newState.player.hull -= pirateDamage;
+      newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.defend_success) + ` (-${pirateDamage} your hull)\n`;
     }
@@ -474,7 +474,7 @@ function resolveCombatRound(state, combatState, action) {
       if (newState.player.upgrades.shields) damageReduction += 0.40;
       
       pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
-      newState.player.hull -= pirateDamage;
+      newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr, -${pirateDamage} hull)\n`;
     }
@@ -495,7 +495,7 @@ function resolveCombatRound(state, combatState, action) {
       if (newState.player.upgrades.shields) damageReduction += 0.40;
       
       pirateDamage = Math.round(pirateDamage * (1 - damageReduction));
-      newState.player.hull -= pirateDamage;
+      newState.player.hull = Math.max(0, newState.player.hull - pirateDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.flee_fail) + ` (-${pirateDamage} hull!)\n`;
     }
@@ -610,7 +610,7 @@ function resolveInspection(state, action) {
       newState.player.credits -= fine;
       
       const hullDamage = randomInt(15, 30);
-      newState.player.hull -= hullDamage;
+      newState.player.hull = Math.max(0, newState.player.hull - hullDamage);
       
       return {
         state: newState,

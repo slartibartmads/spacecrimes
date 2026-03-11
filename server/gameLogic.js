@@ -730,7 +730,7 @@ export function resolveCombatRound(player, combatState, action) {
     
     if (newCombat[enemyHullKey] > 0) {
       const enemyDamage = randomInt(CONSTANTS.ATTACK_DAMAGE_TAKEN_MIN, CONSTANTS.ATTACK_DAMAGE_TAKEN_MAX);
-      newPlayer.hull -= enemyDamage;
+      newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.attack_return) + ` (-${enemyDamage} your hull)\n`;
     }
@@ -742,7 +742,7 @@ export function resolveCombatRound(player, combatState, action) {
     
     if (newCombat[enemyHullKey] > 0) {
       const enemyDamage = randomInt(CONSTANTS.DEFEND_DAMAGE_TAKEN_MIN, CONSTANTS.DEFEND_DAMAGE_TAKEN_MAX);
-      newPlayer.hull -= enemyDamage;
+      newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.defend_success) + ` (-${enemyDamage} your hull)\n`;
     }
@@ -764,7 +764,7 @@ export function resolveCombatRound(player, combatState, action) {
       if (newPlayer.upgrades.shields) damageReduction += 0.40;
       
       enemyDamage = Math.round(enemyDamage * (1 - damageReduction));
-      newPlayer.hull -= enemyDamage;
+      newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.bribe_fail) + ` (-${bribeCost}cr, -${enemyDamage} hull)\n`;
     }
@@ -782,7 +782,7 @@ export function resolveCombatRound(player, combatState, action) {
       if (newPlayer.upgrades.shields) damageReduction += 0.40;
       
       enemyDamage = Math.round(enemyDamage * (1 - damageReduction));
-      newPlayer.hull -= enemyDamage;
+      newPlayer.hull = Math.max(0, newPlayer.hull - enemyDamage);
       
       logEntry += randomChoice(COMBAT_FLAVOR.flee_fail) + ` (-${enemyDamage} hull!)\n`;
     }
@@ -930,8 +930,8 @@ export function resolvePvpRound(attacker, defender, attackerCombat, attackerActi
     newCombat.resolved = true;
     newCombat.outcome = 'escaped';
     
-    newAttacker.hull -= attackerDamage;
-    newDefender.hull -= defenderDamage;
+    newAttacker.hull = Math.max(0, newAttacker.hull - attackerDamage);
+    newDefender.hull = Math.max(0, newDefender.hull - defenderDamage);
     
     return {
       success: true,
@@ -980,8 +980,8 @@ export function resolvePvpRound(attacker, defender, attackerCombat, attackerActi
   if (newDefender.upgrades.shields) defenderDamageReduction += 0.40;
   defenderDamage = Math.round(defenderDamage * (1 - defenderDamageReduction));
   
-  newAttacker.hull -= attackerDamage;
-  newDefender.hull -= defenderDamage;
+  newAttacker.hull = Math.max(0, newAttacker.hull - attackerDamage);
+  newDefender.hull = Math.max(0, newDefender.hull - defenderDamage);
   
   // Update combat state with defender's current hull
   newCombat.opponentHull = newDefender.hull;
@@ -1158,7 +1158,7 @@ export function resolveInspection(player, action) {
       newPlayer.credits -= fine;
       
       const hullDamage = randomInt(15, 30);
-      newPlayer.hull -= hullDamage;
+      newPlayer.hull = Math.max(0, newPlayer.hull - hullDamage);
       
       return {
         success: true,
