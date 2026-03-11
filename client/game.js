@@ -314,6 +314,16 @@ function renderMap() {
     }
   });
   
+  // Station icon mapping
+  const stationIcons = {
+    'fort_attrition': 'img/icon_fort.svg',
+    'caveat_emptor': 'img/icon_caveat.svg',
+    'vice_berth': 'img/icon_vice.svg',
+    'disruptive_smelting': 'img/icon_disruptive.svg',
+    'nuevo_eden': 'img/icon_nuevo_eden.svg',
+    'makinen_tanaka': 'img/icon_institute.svg'
+  };
+  
   // Draw stations
   STATIONS.forEach(station => {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -340,6 +350,17 @@ function renderMap() {
     hexagon.setAttribute('stroke-width', isMajor ? '3.4' : '2.4');
     
     group.appendChild(hexagon);
+    
+    // Add station icon for major stations
+    if (isMajor && stationIcons[station.id]) {
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      icon.setAttributeNS('http://www.w3.org/1999/xlink', 'href', stationIcons[station.id]);
+      icon.setAttribute('width', '28');
+      icon.setAttribute('height', '28');
+      icon.setAttribute('x', station.position.x - 14);
+      icon.setAttribute('y', station.position.y - 14);
+      group.appendChild(icon);
+    }
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', station.position.x);
