@@ -200,14 +200,7 @@ function handleBuy(socket, data, callback, io) {
     updatePlayer(socket.id, result.playerState);
     updateMarkets(result.markets);
     
-    // Add to activity
-    addActivity({
-      type: 'buy',
-      playerName: player.name,
-      commodity,
-      quantity,
-      message: `${player.name} bought ${quantity} ${commodity}`
-    });
+    // Don't log buy transactions to activity feed (too noisy)
     
     // Broadcast updates
     io.emit('marketUpdate', { markets: result.markets });
@@ -215,7 +208,6 @@ function handleBuy(socket, data, callback, io) {
       socketId: socket.id, 
       player: getPublicPlayerInfo(socket.id) 
     });
-    io.emit('activityUpdate', { activities: state.recentActivity });
     
     console.log('Buy successful, sending callback');
     callback({ 
@@ -256,14 +248,7 @@ function handleSell(socket, data, callback, io) {
   updatePlayer(socket.id, result.playerState);
   updateMarkets(result.markets);
   
-  // Add to activity
-  addActivity({
-    type: 'sell',
-    playerName: player.name,
-    commodity,
-    quantity,
-    message: `${player.name} sold ${quantity} ${commodity}`
-  });
+  // Don't log sell transactions to activity feed (too noisy)
   
   // Broadcast updates
   io.emit('marketUpdate', { markets: result.markets });
@@ -271,7 +256,6 @@ function handleSell(socket, data, callback, io) {
     socketId: socket.id, 
     player: getPublicPlayerInfo(socket.id) 
   });
-  io.emit('activityUpdate', { activities: state.recentActivity });
   
   callback({ 
     success: true, 
@@ -392,14 +376,8 @@ function handleTravel(socket, data, callback, io) {
       playerState: getPlayer(socket.id)
     });
     
-    // Add to activity
-    addActivity({
-      type: 'inspection',
-      playerName: player.name,
-      message: `${player.name} is being inspected at ${destination}`
-    });
+    // Don't log inspection start to activity feed (too noisy)
     
-    io.emit('activityUpdate', { activities: getServerState().recentActivity });
     return;
   }
   
@@ -454,19 +432,12 @@ function handleBuyUpgrade(socket, data, callback, io) {
   
   updatePlayer(socket.id, result.playerState);
   
-  // Add to activity
-  addActivity({
-    type: 'upgrade',
-    playerName: player.name,
-    upgradeId,
-    message: `${player.name} purchased ${upgradeId} upgrade`
-  });
+  // Don't log upgrade purchases to activity feed (too noisy)
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
     player: getPublicPlayerInfo(socket.id) 
   });
-  io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
   callback({ 
     success: true, 
@@ -931,34 +902,20 @@ function handleInspectionAction(socket, data, callback, io) {
   updatedPlayer.inspection = null;
   updatePlayer(socket.id, updatedPlayer);
   
-  // Add to activity
-  if (action === 'pay') {
+  // Only log successful resistance to activity feed (interesting event)
+  if (action === 'resist' && result.outcome === 'success') {
     addActivity({
       type: 'inspection',
       playerName: player.name,
-      message: `${player.name} paid a fine for contraband`
+      message: `${player.name} successfully resisted inspection!`
     });
-  } else if (action === 'dump') {
-    addActivity({
-      type: 'inspection',
-      playerName: player.name,
-      message: `${player.name} dumped contraband to avoid a fine`
-    });
-  } else if (action === 'resist') {
-    addActivity({
-      type: 'inspection',
-      playerName: player.name,
-      message: result.outcome === 'success' 
-        ? `${player.name} successfully resisted inspection!`
-        : `${player.name} failed to resist inspection`
-    });
+    io.emit('activityUpdate', { activities: getServerState().recentActivity });
   }
   
   io.emit('playerUpdate', { 
     socketId: socket.id, 
     player: getPublicPlayerInfo(socket.id) 
   });
-  io.emit('activityUpdate', { activities: getServerState().recentActivity });
   
   callback({ 
     success: true, 
