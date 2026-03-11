@@ -618,6 +618,7 @@ function renderStation() {
       const arrowWrapper = document.createElement('span');
       arrowWrapper.style.float = 'right';
       arrowWrapper.style.lineHeight = '1';
+      arrowWrapper.style.marginTop = '3px';
       
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('width', '10');
