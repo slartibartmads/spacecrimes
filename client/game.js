@@ -335,24 +335,9 @@ function renderMap() {
                     station.type === 'agricultural' || station.type === 'research';
     const size = isMajor ? 17 : 10; // Major: 34px diameter, Minor: 20px diameter
     
-    // Create hexagon instead of circle
-    const hexagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    const points = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6; // Flat-top hexagon
-      const x = station.position.x + size * Math.cos(angle);
-      const y = station.position.y + size * Math.sin(angle);
-      points.push(`${x},${y}`);
-    }
-    hexagon.setAttribute('points', points.join(' '));
-    hexagon.setAttribute('fill', '#105626');
-    hexagon.setAttribute('stroke', '#17D773');
-    hexagon.setAttribute('stroke-width', isMajor ? '3.4' : '2.4');
-    
-    group.appendChild(hexagon);
-    
-    // Add station icon for major stations
+    // Render icon for major stations, hexagon for minor stations
     if (isMajor && stationIcons[station.id]) {
+      // Major station: use icon (which includes hexagon background)
       const icon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       icon.setAttributeNS('http://www.w3.org/1999/xlink', 'href', stationIcons[station.id]);
       icon.setAttribute('width', '28');
@@ -360,6 +345,21 @@ function renderMap() {
       icon.setAttribute('x', station.position.x - 14);
       icon.setAttribute('y', station.position.y - 14);
       group.appendChild(icon);
+    } else {
+      // Minor station: use hexagon
+      const hexagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const points = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6; // Flat-top hexagon
+        const x = station.position.x + size * Math.cos(angle);
+        const y = station.position.y + size * Math.sin(angle);
+        points.push(`${x},${y}`);
+      }
+      hexagon.setAttribute('points', points.join(' '));
+      hexagon.setAttribute('fill', '#105626');
+      hexagon.setAttribute('stroke', '#17D773');
+      hexagon.setAttribute('stroke-width', '2.4');
+      group.appendChild(hexagon);
     }
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
