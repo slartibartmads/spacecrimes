@@ -10,6 +10,7 @@ let gameState = null; // markets, events, tick
 let allPlayers = []; // Other players in the system
 let activities = [];
 let pendingTravel = null;
+let lastCombatLogLength = 0; // Track combat messages already shown
 
 // === HELPER FUNCTIONS ===
 
@@ -277,9 +278,9 @@ function renderMap() {
     line.setAttribute('y1', from.position.y);
     line.setAttribute('x2', to.position.x);
     line.setAttribute('y2', to.position.y);
-    line.setAttribute('stroke', isToll ? '#863C23' : '#17D773');
-    line.setAttribute('stroke-width', isToll ? '2' : '1');
-    line.setAttribute('opacity', isToll ? '0.5' : '0.3');
+    line.setAttribute('stroke', isToll ? '#FF5A41' : '#17D773');
+    line.setAttribute('stroke-width', isToll ? '2.4' : '1');
+    line.setAttribute('opacity', isToll ? '0.25' : '0.3');
     routesLayer.appendChild(line);
     
     // Add toll fee label
@@ -295,7 +296,7 @@ function renderMap() {
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('fill', '#FF5A41');
       label.setAttribute('font-size', '10');
-      label.setAttribute('font-weight', 'bold');
+      label.setAttribute('font-weight', '900');
       label.setAttribute('font-family', 'Source Code Pro, monospace');
       label.textContent = `${actualToll}cr`;
       routesLayer.appendChild(label);
@@ -308,25 +309,61 @@ function renderMap() {
     group.setAttribute('class', 'station');
     group.style.cursor = 'pointer';
     
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', station.position.x);
-    circle.setAttribute('cy', station.position.y);
-    circle.setAttribute('r', '8');
-    circle.setAttribute('fill', station.id === playerState.location ? '#F2FFC5' : '#17D773');
-    circle.setAttribute('stroke', '#0D1E06');
-    circle.setAttribute('stroke-width', '1');
+    const isMajor = station.type === 'military' || station.type === 'trading' || 
+                    station.type === 'entertainment' || station.type === 'industrial' || 
+                    station.type === 'agricultural' || station.type === 'research';
+    const size = isMajor ? 17 : 10; // Major: 34px diameter, Minor: 20px diameter
+    
+    // Create hexagon instead of circle
+    const hexagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const points = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 6; // Flat-top hexagon
+      const x = station.position.x + size * Math.cos(angle);
+      const y = station.position.y + size * Math.sin(angle);
+      points.push(`${x},${y}`);
+    }
+    hexagon.setAttribute('points', points.join(' '));
+    hexagon.setAttribute('fill', '#105626');
+    hexagon.setAttribute('stroke', '#17D773');
+    hexagon.setAttribute('stroke-width', '2.4');
+    
+    // Highlight current location
+    if (station.id === playerState.location) {
+      hexagon.setAttribute('fill', '#2A7A3F');
+      hexagon.setAttribute('stroke', '#F2FFC5');
+      hexagon.setAttribute('stroke-width', '3');
+    }
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', station.position.x);
-    text.setAttribute('y', station.position.y + 23);
+    text.setAttribute('y', station.position.y + size + 12);
     text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('fill', '#17D773');
-    text.setAttribute('font-size', '10');
-    text.setAttribute('font-weight', 'bold');
+    text.setAttribute('fill', isMajor ? '#F2FFC5' : '#17D773');
+    text.setAttribute('font-size', isMajor ? '10' : '7');
+    text.setAttribute('font-weight', '900');
     text.setAttribute('font-family', 'Source Code Pro, monospace');
-    text.textContent = station.name;
+    text.setAttribute('text-transform', 'uppercase');
     
-    group.appendChild(circle);
+    // Split station name into lines if needed (for major stations)
+    if (isMajor && station.name.includes(' ')) {
+      const words = station.name.toUpperCase().split(' ');
+      const tspan1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      tspan1.setAttribute('x', station.position.x);
+      tspan1.setAttribute('dy', '0');
+      tspan1.textContent = words[0];
+      text.appendChild(tspan1);
+      
+      const tspan2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      tspan2.setAttribute('x', station.position.x);
+      tspan2.setAttribute('dy', '10');
+      tspan2.textContent = words.slice(1).join(' ');
+      text.appendChild(tspan2);
+    } else {
+      text.textContent = station.name.toUpperCase();
+    }
+    
+    group.appendChild(hexagon);
     group.appendChild(text);
     
     // Click to travel
@@ -832,7 +869,11 @@ function showCombatModal(combat) {
   
   playerHullSpan.textContent = playerState.hull;
   pirateHullSpan.textContent = enemyHull;
-  combatLog.innerHTML = combat.combatLog.join('\n');
+  
+  // Reset combat log tracker for new combat
+  lastCombatLogLength = 0;
+  document.getElementById('combat-log').innerHTML = '';
+  updateCombatLog(combat.combatLog);
   
   // Show action buttons, hide continue/loot
   combatActions.style.display = 'flex';
@@ -951,9 +992,8 @@ function updateCombatDisplay(combat) {
   playerHullSpan.textContent = playerState.hull;
   pirateHullSpan.textContent = enemyHull;
   
-  // Update combat log
-  combatLog.innerHTML = combat.combatLog.join('\n');
-  combatLog.scrollTop = combatLog.scrollHeight;
+  // Update combat log (prepend new messages)
+  updateCombatLog(combat.combatLog);
   
   // Check if combat is resolved
   if (combat.resolved) {
@@ -1000,6 +1040,9 @@ function updateCombatDisplay(combat) {
 function closeCombatModal() {
   document.getElementById('combat-modal').style.display = 'none';
   document.getElementById('modal-overlay').style.display = 'none';
+  
+  // Reset combat log tracker for next combat
+  lastCombatLogLength = 0;
   
   // Update map and status to reflect final state after combat
   renderMap();
@@ -1077,14 +1120,14 @@ function showWaitingForOpponent() {
   // Disable combat buttons
   combatActions.style.display = 'none';
   
-  // Add waiting message to combat log
+  // Add waiting message to combat log (prepend at top)
   const waitingMsg = document.createElement('div');
   waitingMsg.id = 'waiting-message';
   waitingMsg.style.color = '#ffcc00';
   waitingMsg.style.fontStyle = 'italic';
-  waitingMsg.style.marginTop = '10px';
+  waitingMsg.style.marginBottom = '4px';
   waitingMsg.textContent = 'Waiting for opponent to choose their action...';
-  combatLog.appendChild(waitingMsg);
+  combatLog.insertBefore(waitingMsg, combatLog.firstChild);
 }
 
 function handleOpponentReady(data) {
@@ -1186,6 +1229,39 @@ function addLog(message, type = 'success') {
   // Keep only last 50 entries
   while (logContent.children.length > 50) {
     logContent.removeChild(logContent.lastChild);
+  }
+}
+
+// === COMBAT LOG ===
+
+function updateCombatLog(combatLogArray) {
+  const combatLogElement = document.getElementById('combat-log');
+  if (!combatLogElement || !combatLogArray) return;
+  
+  // Check if we need to reset (combat log is shorter than last time = new combat)
+  if (combatLogArray.length < lastCombatLogLength) {
+    combatLogElement.innerHTML = '';
+    lastCombatLogLength = 0;
+  }
+  
+  // Only add new messages (from lastCombatLogLength to end)
+  const newMessages = combatLogArray.slice(lastCombatLogLength);
+  
+  newMessages.forEach(message => {
+    const entry = document.createElement('div');
+    entry.style.marginBottom = '4px';
+    entry.textContent = message;
+    
+    // Prepend at the top (newest first, like activity log)
+    combatLogElement.insertBefore(entry, combatLogElement.firstChild);
+  });
+  
+  // Update tracker
+  lastCombatLogLength = combatLogArray.length;
+  
+  // Keep only last 50 messages
+  while (combatLogElement.children.length > 50) {
+    combatLogElement.removeChild(combatLogElement.lastChild);
   }
 }
 
