@@ -759,7 +759,7 @@ function renderUpgrades() {
   // Icon mapping for upgrades
   const upgradeIcons = {
     'cargo': 'img/icon_cargo.svg',
-    'hull': 'img/icon_hull.svg',
+    'shields': 'img/icon_shields.svg',
     'weapon': 'img/icon_weapons.svg'
   };
   

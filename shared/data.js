@@ -484,13 +484,13 @@ const UPGRADES = [
     effectType: 'capacity'
   },
   {
-    id: "hull",
-    name: "Hull",
+    id: "shields",
+    name: "Shields",
     baseCost: 600,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 20,
-    description: "+20 Hull",
+    description: "+20 Shields",
     effectType: 'hull'
   },
   {

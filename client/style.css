@@ -718,8 +718,8 @@ button.small {
 .upgrade-item button {
   position: absolute;
   left: 14px;
+  right: 14px;
   top: 75px;
-  width: 172px;
   height: 25px;
   margin: 0;
   padding: 0;
