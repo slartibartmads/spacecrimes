@@ -526,7 +526,7 @@ function renderStation() {
     // Create text for initials
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', '40');
-    text.setAttribute('y', '41');
+    text.setAttribute('y', '43');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', '#17D773');
