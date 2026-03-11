@@ -609,19 +609,22 @@ function renderStation() {
       arrowColor = '#FF5A41'; // Red for up arrows
     }
     
-    // Add price text and arrow with float for alignment
-    priceCell.textContent = `${marketData.currentPrice}cr`;
+    // Create wrapper for price text
+    const priceWrapper = document.createElement('span');
+    priceWrapper.textContent = `${marketData.currentPrice}cr`;
+    priceCell.appendChild(priceWrapper);
     
     if (svgPath) {
+      const arrowWrapper = document.createElement('span');
+      arrowWrapper.style.float = 'right';
+      arrowWrapper.style.lineHeight = '1';
+      
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('width', '10');
       svg.setAttribute('height', '10');
       svg.setAttribute('viewBox', '0 0 16 16');
       svg.classList.add('price-arrow');
-      svg.style.display = 'inline-block';
-      svg.style.verticalAlign = 'middle';
-      svg.style.marginLeft = '4px';
-      svg.style.float = 'right';
+      svg.style.display = 'block';
       
       const paths = svgPath.split('M').filter(p => p.trim());
       paths.forEach(pathData => {
@@ -633,7 +636,8 @@ function renderStation() {
         svg.appendChild(path);
       });
       
-      priceCell.appendChild(svg);
+      arrowWrapper.appendChild(svg);
+      priceCell.appendChild(arrowWrapper);
     }
     row.appendChild(priceCell);
     
