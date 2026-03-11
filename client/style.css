@@ -650,6 +650,8 @@ button.small {
   display: none; /* Hidden by default, shown conditionally */
 }
 
+/* === UPGRADES === */
+
 #upgrade-list {
   margin-top: 5px;
   display: grid;
@@ -658,39 +660,72 @@ button.small {
 }
 
 .upgrade-item {
-  padding: 8px;
-  border: 1px solid var(--text-green-dark);
-  background: var(--row-alt);
-  display: flex;
-  flex-direction: column;
+  width: 200px;
+  height: 113px;
+  background: #062604;
+  border: 1px solid var(--border-green);
+  position: relative;
+  padding: 0;
 }
 
-.upgrade-item.owned {
+.upgrade-item.max-tier {
   opacity: 0.5;
 }
 
+.upgrade-icon {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 30px;
+  height: 30px;
+}
+
+.upgrade-tier {
+  position: absolute;
+  left: 48px;
+  top: 11px;
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 13px;
+  text-transform: uppercase;
+  color: var(--text-green);
+}
+
 .upgrade-name {
-  font-weight: bold;
-  margin-bottom: 4px;
-  font-size: 15px;
+  position: absolute;
+  left: 48px;
+  top: 22px;
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--text-green);
 }
 
 .upgrade-description {
-  font-size: 12px;
-  margin-bottom: 6px;
-  color: rgba(23, 215, 115, 0.75);
-  flex-grow: 1;
-}
-
-.upgrade-price {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 15px;
+  position: absolute;
+  left: 10px;
+  top: 50px;
+  width: 176px;
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--text-green);
 }
 
 .upgrade-item button {
-  width: 100%;
-  margin-top: auto;
+  position: absolute;
+  left: 14px;
+  top: 75px;
+  width: 172px;
+  height: 25px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* === QUANTITY CONTROLS === */

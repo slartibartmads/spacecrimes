@@ -756,6 +756,13 @@ function renderUpgrades() {
   const upgradeList = document.getElementById('upgrade-list');
   upgradeList.innerHTML = '';
   
+  // Icon mapping for upgrades
+  const upgradeIcons = {
+    'cargo': 'img/icon_cargo.svg',
+    'hull': 'img/icon_hull.svg',
+    'weapon': 'img/icon_weapons.svg'
+  };
+  
   UPGRADES.forEach(upgrade => {
     const currentTier = playerState.upgrades[upgrade.id] || 0;
     const isMaxTier = currentTier >= upgrade.maxTier;
@@ -765,33 +772,34 @@ function renderUpgrades() {
     div.classList.add('upgrade-item');
     if (isMaxTier) div.classList.add('max-tier');
     
-    const header = document.createElement('div');
-    header.classList.add('upgrade-header');
-    
-    const name = document.createElement('div');
-    name.classList.add('upgrade-name');
-    name.innerHTML = `${upgrade.name}<br>(Tier ${currentTier}/${upgrade.maxTier})`;
-    header.appendChild(name);
-    
-    div.appendChild(header);
-    
-    const description = document.createElement('div');
-    description.classList.add('upgrade-description');
-    
-    // Show cumulative effect based on upgrade type
-    if (upgrade.effectType === 'capacity') {
-      const totalBonus = currentTier * upgrade.effectPerTier;
-      description.textContent = `${upgrade.description}${currentTier > 0 ? ` (current: +${totalBonus} capacity)` : ''}`;
-    } else if (upgrade.effectType === 'hull') {
-      const totalHull = currentTier * upgrade.effectPerTier;
-      description.textContent = `${upgrade.description}${currentTier > 0 ? ` (current: +${totalHull} hull)` : ''}`;
-    } else if (upgrade.effectType === 'weapon') {
-      const totalBonus = currentTier * upgrade.effectPerTier;
-      description.textContent = `${upgrade.description}${currentTier > 0 ? ` (current: +${totalBonus} damage)` : ''}`;
+    // Icon
+    if (upgradeIcons[upgrade.id]) {
+      const icon = document.createElement('img');
+      icon.src = upgradeIcons[upgrade.id];
+      icon.alt = upgrade.name;
+      icon.classList.add('upgrade-icon');
+      div.appendChild(icon);
     }
     
+    // Tier label
+    const tier = document.createElement('div');
+    tier.classList.add('upgrade-tier');
+    tier.textContent = `TIER ${currentTier} OF ${upgrade.maxTier}`;
+    div.appendChild(tier);
+    
+    // Title
+    const name = document.createElement('div');
+    name.classList.add('upgrade-name');
+    name.textContent = upgrade.name;
+    div.appendChild(name);
+    
+    // Description
+    const description = document.createElement('div');
+    description.classList.add('upgrade-description');
+    description.textContent = upgrade.description;
     div.appendChild(description);
     
+    // Button
     const button = document.createElement('button');
     button.textContent = isMaxTier ? 'MAX TIER' : `BUY (${nextTierCost}cr)`;
     button.disabled = isMaxTier || playerState.credits < nextTierCost;
