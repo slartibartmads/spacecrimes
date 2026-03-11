@@ -916,8 +916,9 @@ function renderActivityFeed() {
     }
   });
   
-  // Add activity feed entries at the top
-  activities.slice(0, 20).forEach(activity => {
+  // Add activity feed entries at the top (already in newest-first order from server)
+  // Reverse the iteration so newest ends up at top after all insertBefore calls
+  activities.slice(0, 20).reverse().forEach(activity => {
     const div = document.createElement('div');
     div.classList.add('log-entry', 'activity-entry');
     div.classList.add(activity.type);
