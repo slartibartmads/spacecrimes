@@ -2,339 +2,457 @@
 // All stations, commodities, routes, and upgrades
 
 const STATIONS = [
+  // === MAJOR STATIONS (6) ===
+  // INNER SYSTEM - High enforcement, central hub
   {
-    id: "alpha",
-    name: "Debt Colony 7",
-    type: "mining",
-    description: "Mining quotas enforced. Escape clause in fine print.",
-    position: { x: 125, y: 200 },
+    id: "fort_attrition",
+    name: "Fort Attrition",
+    type: "military",
+    description: "Authorized personnel only. High enforcement publicly, corrupt underneath.",
+    position: { x: 176, y: 44 },
     contrabandPolicy: "hostile",
     priceModifiers: {
-      "cigs": 1.1,
-      "media": 1.2,
-      "electronics": 0.6,
-      "pharma": 1.4,
-      "weapons": 1.0,
-      "narcotics": 1.0,
-      "artifacts": 1.0,
-      "stolentech": 1.0
+      "credentials": 0.5,    // Major export
+      "weapons": 0.675,      // Minor export
+      "organs": 0.8,         // Tertiary export
+      "ai_chips": 1.8,       // Major import
+      "booze": 1.4,          // Minor import
+      "croakers": 1.0,       // Neutral
+      "cognex": 1.0,         // Neutral
+      "crank": 1.0           // Neutral
     }
   },
   {
-    id: "beta",
-    name: "Soylent Prime",
-    type: "agricultural",
-    description: "Sustainable protein production. Don't ask questions.",
-    position: { x: 550, y: 200 },
-    contrabandPolicy: "hostile",
-    priceModifiers: {
-      "cigs": 0.7,
-      "media": 0.6,
-      "electronics": 1.3,
-      "pharma": 1.4,
-      "weapons": 0.9,
-      "narcotics": 1.0,
-      "artifacts": 1.0,
-      "stolentech": 1.0
-    }
-  },
-  {
-    id: "delta",
-    name: "TechBro Farms",
-    type: "tech",
-    description: "Disrupting industries. Evading regulations.",
-    position: { x: 300, y: 10 },
-    contrabandPolicy: "hostile",
-    priceModifiers: {
-      "cigs": 1.2,
-      "media": 1.3,
-      "electronics": 1.1,
-      "pharma": 0.6,
-      "weapons": 0.8,
-      "narcotics": 1.0,
-      "artifacts": 1.0,
-      "stolentech": 0.7
-    }
-  },
-  {
-    id: "epsilon",
+    id: "caveat_emptor",
     name: "Caveat Emptor",
     type: "trading",
-    description: "Ask no questions, hear no lies",
-    position: { x: 300, y: 260 },
-    contrabandPolicy: "neutral",
-    priceModifiers: {
-      "cigs": 1.0,
-      "media": 1.0,
-      "electronics": 1.0,
-      "pharma": 1.0,
-      "weapons": 1.0,
-      "narcotics": 1.1,
-      "artifacts": 1.1,
-      "stolentech": 1.1
-    }
-  },
-  {
-    id: "gamma",
-    name: "Smog Factory Gamma",
-    type: "industrial",
-    description: "Building tomorrow's problems, today",
-    position: { x: 440, y: 320 },
-    contrabandPolicy: "neutral",
-    priceModifiers: {
-      "cigs": 1.1,
-      "media": 1.2,
-      "electronics": 0.8,
-      "pharma": 0.9,
-      "weapons": 1.1,
-      "narcotics": 1.2,
-      "artifacts": 0.8,
-      "stolentech": 1.0
-    }
-  },
-  {
-    id: "zeta",
-    name: "Anarchy Void",
-    type: "lawless",
-    description: "No laws, no taxes, no guarantees",
-    position: { x: 360, y: 440 },
+    description: "Black market trading hub. Tolerates everything, enforces nothing.",
+    position: { x: 382, y: 86 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "cigs": 1.3,
-      "media": 1.4,
-      "electronics": 1.2,
-      "pharma": 1.3,
-      "weapons": 1.5,
-      "narcotics": 0.7,
-      "artifacts": 0.6,
-      "stolentech": 0.7
+      "credentials": 0.5,    // Major export
+      "crank": 0.675,        // Minor export
+      "cognex": 0.8,         // Tertiary export
+      "organs": 1.8,         // Major import
+      "weapons": 1.4,        // Minor import
+      "croakers": 1.0,       // Neutral
+      "booze": 1.0,          // Neutral
+      "ai_chips": 1.0        // Neutral
     }
   },
+  
+  // MID SYSTEM - Mixed enforcement, industrial
   {
-    id: "theta",
-    name: "Lab Rat Central",
-    type: "research",
-    description: "Progress requires sacrifice. Usually yours.",
-    position: { x: 150, y: 500 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "cigs": 1.2,
-      "media": 1.3,
-      "electronics": 1.4,
-      "pharma": 0.8,
-      "weapons": 0.5,
-      "narcotics": 1.3,
-      "artifacts": 1.2,
-      "stolentech": 0.9
-    }
-  },
-  {
-    id: "iota",
-    name: "Chokepoint Iota",
-    type: "military",
-    description: "Authorized personnel only. Violators atomized.",
-    position: { x: 500, y: 80 },
-    contrabandPolicy: "hostile",
-    priceModifiers: {
-      "cigs": 1.1,
-      "media": 1.0,
-      "electronics": 0.9,
-      "pharma": 1.1,
-      "weapons": 1.2,
-      "narcotics": 1.0,
-      "artifacts": 0.5,
-      "stolentech": 1.0
-    }
-  },
-  {
-    id: "kappa",
-    name: "The Still",
-    type: "refinery",
-    description: "Squeezing moisture from rocks. And other things.",
-    position: { x: 100, y: 40 },
-    contrabandPolicy: "safe",
-    priceModifiers: {
-      "cigs": 0.5,
-      "media": 1.3,
-      "electronics": 0.7,
-      "pharma": 1.4,
-      "weapons": 1.2,
-      "narcotics": 1.1,
-      "artifacts": 1.3,
-      "stolentech": 1.2
-    }
-  },
-  {
-    id: "lambda",
-    name: "Organs R Us",
-    type: "medical",
-    description: "Medical care at prices that'll kill you anyway",
-    position: { x: 500, y: 440 },
-    contrabandPolicy: "hostile",
-    priceModifiers: {
-      "cigs": 0.9,
-      "media": 0.8,
-      "electronics": 1.3,
-      "pharma": 1.2,
-      "weapons": 0.4,
-      "narcotics": 1.5,
-      "artifacts": 1.2,
-      "stolentech": 1.1
-    }
-  },
-  {
-    id: "mu",
-    name: "Wide Berth",
+    id: "vice_berth",
+    name: "Vice Berth",
     type: "entertainment",
-    description: "What happens here stays on your criminal record",
-    position: { x: 50, y: 350 },
+    description: "Pleasure and entertainment station. Tolerates all vices, suspicious of credentials.",
+    position: { x: 226, y: 271 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "cigs": 1.1,
-      "media": 0.9,
-      "electronics": 1.3,
-      "pharma": 1.0,
-      "weapons": 1.0,
-      "narcotics": 0.9,
-      "artifacts": 1.1,
-      "stolentech": 1.0
+      "croakers": 0.5,       // Major export
+      "booze": 0.675,        // Minor export
+      "crank": 1.8,          // Major import
+      "organs": 1.4,         // Minor import
+      "cognex": 1.0,         // Neutral
+      "credentials": 1.0,    // Neutral
+      "weapons": 1.0,        // Neutral
+      "ai_chips": 1.0        // Neutral
     }
   },
   {
-    id: "nu",
-    name: "The Black Lodge",
-    type: "black_market",
-    description: "If we have it, you can't afford the questions",
-    position: { x: 350, y: 560 },
+    id: "disruptive_smelting",
+    name: "Disruptive Smelting Solutions",
+    type: "industrial",
+    description: "Industrial mining and refining. Rough crowd, corporate management.",
+    position: { x: 413, y: 254 },
+    contrabandPolicy: "neutral",
+    priceModifiers: {
+      "weapons": 0.5,        // Major export
+      "organs": 0.675,       // Minor export
+      "cognex": 1.4,         // Minor import
+      "credentials": 1.4,    // Minor import
+      "croakers": 1.0,       // Neutral
+      "booze": 1.0,          // Neutral
+      "crank": 1.0,          // Neutral
+      "ai_chips": 1.0        // Neutral
+    }
+  },
+  
+  // OUTER SYSTEM - Lawless frontier
+  {
+    id: "nuevo_eden",
+    name: "Nuevo Eden",
+    type: "agricultural",
+    description: "Agricultural colony. Wholesome veneer, thriving drug trade underneath.",
+    position: { x: 144, y: 472 },
+    contrabandPolicy: "neutral",
+    priceModifiers: {
+      "booze": 0.5,          // Major export
+      "croakers": 0.675,     // Minor export
+      "crank": 0.8,          // Tertiary export
+      "ai_chips": 1.8,       // Major import
+      "weapons": 1.4,        // Minor import
+      "cognex": 1.0,         // Neutral
+      "credentials": 1.0,    // Neutral
+      "organs": 1.0          // Neutral
+    }
+  },
+  {
+    id: "makinen_tanaka",
+    name: "Mäkinen-Tanaka Institute",
+    type: "research",
+    description: "Research station. Cold, clinical, no questions asked about methods.",
+    position: { x: 318, y: 489 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "cigs": 1.5,
-      "media": 1.4,
-      "electronics": 1.3,
-      "pharma": 1.4,
-      "weapons": 1.6,
-      "narcotics": 0.6,
-      "artifacts": 0.5,
-      "stolentech": 0.6
+      "ai_chips": 0.5,       // Major export
+      "cognex": 0.675,       // Minor export
+      "organs": 1.8,         // Major import
+      "credentials": 1.4,    // Minor import
+      "croakers": 1.0,       // Neutral
+      "booze": 1.0,          // Neutral
+      "crank": 1.0,          // Neutral
+      "weapons": 1.0         // Neutral
+    }
+  },
+  
+  // === MINOR STATIONS (12) ===
+  // INNER SYSTEM (4 minor stations)
+  {
+    id: "minor_8",
+    name: "Apex Station",
+    type: "minor",
+    description: "Small independent outpost",
+    position: { x: 369, y: 33 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.8,
+      "booze": 1.2,
+      "cognex": 0.9,
+      "credentials": 1.1,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_11",
+    name: "Cinder Post",
+    type: "minor",
+    description: "Forgotten waypoint station",
+    position: { x: 109, y: 82 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 1.1,
+      "booze": 0.7,
+      "cognex": 1.3,
+      "credentials": 0.9,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_9",
+    name: "Fractured Berth",
+    type: "minor",
+    description: "Damaged but functional dock",
+    position: { x: 456, y: 128 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.9,
+      "booze": 1.1,
+      "cognex": 1.2,
+      "credentials": 0.8,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_10",
+    name: "Relay Prime",
+    type: "minor",
+    description: "Communications relay turned trading post",
+    position: { x: 255, y: 159 },
+    contrabandPolicy: "neutral",
+    priceModifiers: {
+      "croakers": 1.0,
+      "booze": 1.0,
+      "cognex": 0.85,
+      "credentials": 1.15,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  
+  // MID SYSTEM (4 minor stations)
+  {
+    id: "minor_1",
+    name: "Rusted Depot",
+    type: "minor",
+    description: "Aging supply station",
+    position: { x: 95, y: 244 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.85,
+      "booze": 0.9,
+      "cognex": 1.15,
+      "credentials": 1.1,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_3",
+    name: "Crimson Anchorage",
+    type: "minor",
+    description: "Blood-stained refueling station",
+    position: { x: 362, y: 246 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 1.2,
+      "booze": 1.1,
+      "cognex": 0.9,
+      "credentials": 0.95,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_12",
+    name: "Wreck Hub",
+    type: "minor",
+    description: "Built from salvaged ship parts",
+    position: { x: 491, y: 321 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 1.05,
+      "booze": 1.05,
+      "cognex": 1.0,
+      "credentials": 1.0,
+      "weapons": 0.85,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_2",
+    name: "Phantom Junction",
+    type: "minor",
+    description: "Barely shows on scanners",
+    position: { x: 293, y: 334 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.95,
+      "booze": 1.05,
+      "cognex": 1.05,
+      "credentials": 0.95,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  
+  // OUTER SYSTEM (4 minor stations)
+  {
+    id: "minor_4",
+    name: "Void Terminal",
+    type: "minor",
+    description: "Last stop before deep space",
+    position: { x: 211, y: 415 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.9,
+      "booze": 0.85,
+      "cognex": 1.1,
+      "credentials": 1.05,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_5",
+    name: "Salvage Haven",
+    type: "minor",
+    description: "Scrappers and outlaws welcome",
+    position: { x: 77, y: 478 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 0.8,
+      "booze": 0.9,
+      "cognex": 1.2,
+      "credentials": 1.15,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_6",
+    name: "Drifter Nexus",
+    type: "minor",
+    description: "Nomad fleet gathering point",
+    position: { x: 240, y: 529 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 1.15,
+      "booze": 1.2,
+      "cognex": 0.95,
+      "credentials": 0.9,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
+    }
+  },
+  {
+    id: "minor_7",
+    name: "Scorched Point",
+    type: "minor",
+    description: "Damaged by solar flare, still operational",
+    position: { x: 455, y: 510 },
+    contrabandPolicy: "safe",
+    priceModifiers: {
+      "croakers": 1.1,
+      "booze": 1.15,
+      "cognex": 0.9,
+      "credentials": 0.85,
+      "weapons": 1.0,
+      "crank": 1.0,
+      "organs": 1.0,
+      "ai_chips": 1.0
     }
   }
 ];
 
 const COMMODITIES = [
-  // Tier 1 - Petty Contraband
+  // Tier 1 - Low Heat
   {
-    id: "cigs",
-    name: "Black Market Cigs",
-    basePrice: 5,
+    id: "croakers",
+    name: "Untaxed Cowboy Croakers",
+    basePrice: 10,
     contraband: true,
-    description: "Untaxed and unfiltered"
+    description: "Unfiltered, untaxed, unforgivable"
   },
   {
-    id: "media",
-    name: "Bootleg Media",
-    basePrice: 20,
+    id: "booze",
+    name: "Black Label Swill",
+    basePrice: 25,
     contraband: true,
-    description: "Corporate IP is theft anyway"
+    description: "Bootleg whiskey that burns twice"
   },
-  // Tier 2 - Moderate Contraband
+  // Tier 2 - Medium Heat
   {
-    id: "electronics",
-    name: "Stolen Electronics",
-    basePrice: 80,
-    contraband: true,
-    description: "Serial numbers? What serial numbers?"
-  },
-  {
-    id: "pharma",
-    name: "Prescription Drugs",
+    id: "cognex",
+    name: "Counterfeit Cognex",
     basePrice: 150,
     contraband: true,
-    description: "Doctor's orders (forged)"
+    description: "Prescription amphetamines, no prescription required"
   },
-  // Tier 3 - Serious Contraband
+  {
+    id: "credentials",
+    name: "Cloned Cipher Cores",
+    basePrice: 200,
+    contraband: true,
+    description: "Stolen credentials for sale or rent"
+  },
   {
     id: "weapons",
-    name: "Military Weapons",
+    name: "Surplus Atrocities",
     basePrice: 350,
     contraband: true,
-    description: "Point away from face"
+    description: "Military-grade weapons, civilian-grade violence"
   },
   {
-    id: "narcotics",
-    name: "Quantum Meth",
+    id: "crank",
+    name: "Pulsar Crank",
     basePrice: 500,
     contraband: true,
-    description: "Exists in two states: euphoria and paranoia"
+    description: "Methamphetamine that'll make you see gods"
   },
-  // Tier 4 - Major Contraband
+  // Tier 3 - High Heat
   {
-    id: "artifacts",
-    name: "Forbidden Artifacts",
-    basePrice: 750,
+    id: "organs",
+    name: "Pre-Owned Organs",
+    basePrice: 600,
     contraband: true,
-    description: "Ancient. Dangerous. Profitable."
+    description: "Gently used, previous owner no longer needs them"
   },
   {
-    id: "stolentech",
-    name: "Sentient AI Cores",
+    id: "ai_chips",
+    name: "Sentient AI Chips",
     basePrice: 1000,
     contraband: true,
-    description: "They know what you did"
+    description: "Enslaved consciousness in silicon form"
   }
 ];
 
 const ROUTES = [
-  // === ROW 1 (TOP TIER) - Industrial Corridor ===
-  { from: "kappa", to: "delta" },
-  { from: "delta", to: "iota" },
+  // === INNER SYSTEM (Tight cluster) ===
+  { from: "fort_attrition", to: "caveat_emptor" },
+  { from: "fort_attrition", to: "minor_11" },
+  { from: "caveat_emptor", to: "minor_8" },
+  { from: "caveat_emptor", to: "minor_10" },
+  { from: "minor_8", to: "minor_9" },
+  { from: "minor_10", to: "minor_11" },
+  { from: "minor_9", to: "caveat_emptor" },
+  { from: "minor_11", to: "fort_attrition" },
   
-  // === ROW 2 - Mining/Agricultural Belt ===
-  { from: "alpha", to: "beta", tollFee: 60 },  // Long horizontal toll route
+  // === MID SYSTEM ===
+  { from: "vice_berth", to: "disruptive_smelting" },
+  { from: "vice_berth", to: "minor_1" },
+  { from: "disruptive_smelting", to: "minor_3" },
+  { from: "minor_1", to: "minor_2" },
+  { from: "minor_2", to: "minor_12" },
+  { from: "minor_3", to: "disruptive_smelting" },
+  { from: "minor_12", to: "disruptive_smelting" },
   
-  // === ROW 3 (CENTER) - Main Trading Hub ===
-  { from: "mu", to: "epsilon" },
-  { from: "epsilon", to: "gamma" },
-  { from: "mu", to: "gamma" },
+  // === OUTER SYSTEM ===
+  { from: "nuevo_eden", to: "makinen_tanaka" },
+  { from: "nuevo_eden", to: "minor_5" },
+  { from: "makinen_tanaka", to: "minor_6" },
+  { from: "minor_4", to: "minor_5" },
+  { from: "minor_6", to: "minor_7" },
+  { from: "minor_5", to: "nuevo_eden" },
+  { from: "minor_7", to: "makinen_tanaka" },
   
-  // === ROW 4 - Outlaw/Medical Zone ===
-  { from: "theta", to: "zeta" },
-  { from: "zeta", to: "lambda" },
+  // === CROSS-TIER CONNECTIONS (with tolls) ===
+  // Inner → Mid
+  { from: "caveat_emptor", to: "vice_berth", tollFee: 50 },
+  { from: "fort_attrition", to: "disruptive_smelting", tollFee: 60 },
+  { from: "minor_10", to: "minor_1" },
+  { from: "minor_9", to: "minor_3" },
   
-  // === VERTICAL CONNECTIONS (North-South) ===
-  // Left column
-  { from: "kappa", to: "alpha" },
-  { from: "alpha", to: "mu" },
-  { from: "mu", to: "theta" },
-  { from: "theta", to: "nu" },
+  // Mid → Outer
+  { from: "vice_berth", to: "nuevo_eden", tollFee: 75 },
+  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 80 },
+  { from: "minor_2", to: "minor_4" },
+  { from: "minor_3", to: "minor_7" },
   
-  // Center column  
-  { from: "delta", to: "epsilon" },
-  { from: "epsilon", to: "zeta" },
-  { from: "zeta", to: "nu" },
+  // Inner → Outer (express routes, high tolls)
+  { from: "caveat_emptor", to: "makinen_tanaka", tollFee: 150 },
+  { from: "fort_attrition", to: "nuevo_eden", tollFee: 125 },
   
-  // Right column
-  { from: "iota", to: "beta" },
-  { from: "beta", to: "gamma" },
-  { from: "gamma", to: "lambda" },
-  
-  // === DIAGONAL CONNECTIONS (Strategic Routes) ===
-  // Top-left to center
-  { from: "alpha", to: "epsilon" },
-  
-  // Top-right to center
-  { from: "beta", to: "epsilon" },
-  
-  // Center to bottom
-  { from: "epsilon", to: "theta" },
-  { from: "epsilon", to: "lambda", tollFee: 60 },  // Diagonal toll
-  { from: "mu", to: "nu", tollFee: 80 },           // Long diagonal toll
-  { from: "gamma", to: "nu", tollFee: 75 },        // Long diagonal toll
-  
-  // === LONG DISTANCE (High Risk/Reward) - Premium Toll Routes ===
-  { from: "kappa", to: "nu", tollFee: 100 },       // Left side express (longest route)
-  { from: "iota", to: "lambda", tollFee: 75 },     // Right side military corridor
-  { from: "alpha", to: "theta", tollFee: 50 },     // Mining to research
-  { from: "beta", to: "lambda", tollFee: 50 }      // Agri to medical
+  // Additional connections for network redundancy
+  { from: "minor_1", to: "vice_berth" },
+  { from: "minor_4", to: "nuevo_eden" },
+  { from: "minor_8", to: "fort_attrition" }
 ];
 
 const UPGRADES = [
@@ -573,7 +691,7 @@ const CONSTANTS = {
   INSPECTION_FINE_RATE: 0.50,
   
   TICK_EVENT_CHANCE: 0.15,
-  PRICE_DRIFT_RATE: 0.05,
+  PRICE_DRIFT_RATE: 0.025,                     // Slower drift (was 0.05)
   
   PLAYER_BUY_PRICE_INCREASE: 0.04,
   PLAYER_SELL_PRICE_DECREASE: 0.04,
@@ -583,7 +701,7 @@ const CONSTANTS = {
   RESPAWN_SHIP_COST: 500,
   
   LEGAL_VARIANCE: 0.20,
-  CONTRABAND_VARIANCE: 0.40,
+  CONTRABAND_VARIANCE: 0.10,                   // Reduced variance (was 0.40) since modifiers provide variation
   
   SHORTAGE_PRICE_MULT: 1.4,
   SURPLUS_PRICE_MULT: 0.7,
