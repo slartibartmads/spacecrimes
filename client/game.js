@@ -176,6 +176,17 @@ function handleOtherPlayerUpdate(data) {
   // Clean up any undefined entries
   allPlayers = allPlayers.filter(p => p != null);
   
+  // Also update gameState.players if it exists (to keep it in sync)
+  if (gameState && gameState.players) {
+    const gsIndex = gameState.players.findIndex(p => p && p.socketId === data.socketId);
+    if (gsIndex !== -1) {
+      gameState.players[gsIndex] = data.player;
+    } else {
+      gameState.players.push(data.player);
+    }
+    gameState.players = gameState.players.filter(p => p != null);
+  }
+  
   // Re-render map to show updated positions
   renderMap();
   
