@@ -593,15 +593,20 @@ function renderStation() {
     
     // Determine price indicators with SVG icons
     let svgPath = null;
+    let arrowColor = '#17D773'; // Default green
     
     if (pricePercent < -15) {
       svgPath = 'M13.7782 7.22182L7.99998 13L2.2218 7.22182M13.7782 1.44365L7.99998 7.22182L2.2218 1.44365'; // lowest
+      arrowColor = '#17D773'; // Green for down arrows
     } else if (pricePercent < -5) {
       svgPath = 'M2.22185 5.22182L8.00002 11L13.7782 5.22182'; // low
+      arrowColor = '#17D773'; // Green for down arrows
     } else if (pricePercent > 15) {
       svgPath = 'M13.7782 8.77818L7.99998 3L2.2218 8.77818M13.7782 14.5564L7.99998 8.77818L2.2218 14.5564'; // highest
+      arrowColor = '#FF5A41'; // Red for up arrows
     } else if (pricePercent > 5) {
       svgPath = 'M13.7782 10.7782L7.99998 5L2.2218 10.7782'; // high
+      arrowColor = '#FF5A41'; // Red for up arrows
     }
     
     priceCell.textContent = `${marketData.currentPrice}cr `;
@@ -620,7 +625,7 @@ function renderStation() {
       paths.forEach(pathData => {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', 'M' + pathData);
-        path.setAttribute('stroke', '#17D773');
+        path.setAttribute('stroke', arrowColor);
         path.setAttribute('stroke-width', '2.88909');
         path.setAttribute('fill', 'none');
         svg.appendChild(path);
