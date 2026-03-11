@@ -263,20 +263,25 @@ export function processTick(markets, activeEvents, stationInventories, tick) {
   
   // Expire old events
   newEvents = newEvents.filter(event => {
-    if (event.expiryTick <= tick) {
-      // Restore market to normal
-      if (event.type === "shortage" || event.type === "glut") {
-        if (newMarkets[event.stationId]?.[event.commodityId]) {
-          newMarkets[event.stationId][event.commodityId].supply = "normal";
-        }
-      } else if (event.type === "surge") {
-        if (newMarkets[event.stationId]?.[event.commodityId]) {
-          newMarkets[event.stationId][event.commodityId].demand = "normal";
-        }
-      }
-      return false;
+    // Keep events with no expiry (commodity_reroll) or not yet expired
+    if (event.expiryTick === null || event.expiryTick > tick) {
+      return true;
     }
-    return true;
+    
+    // Event expired - restore market to normal
+    if (event.type === "shortage" || event.type === "glut") {
+      if (newMarkets[event.stationId]?.[event.commodityId]) {
+        newMarkets[event.stationId][event.commodityId].supply = "normal";
+      }
+    } else if (event.type === "surge") {
+      if (newMarkets[event.stationId]?.[event.commodityId]) {
+        newMarkets[event.stationId][event.commodityId].demand = "normal";
+      }
+    }
+    // spike/drop/boom/recession restoration handled by natural price drift
+    // crackdown/safe_passage just expire (no market restoration needed)
+    
+    return false; // Remove from activeEvents
   });
 
   // Price drift toward baseline
@@ -296,7 +301,7 @@ export function processTick(markets, activeEvents, stationInventories, tick) {
     });
   });
 
-  // Random event (15% chance)
+  // Random event (7.5% chance)
   let generatedEvent = null;
   if (Math.random() < CONSTANTS.TICK_EVENT_CHANCE) {
     const eventData = generateRandomEvent(newMarkets, newEvents, stationInventories, tick);
@@ -309,89 +314,469 @@ export function processTick(markets, activeEvents, stationInventories, tick) {
   return {
     markets: newMarkets,
     activeEvents: newEvents,
-    event: generatedEvent
+    newEvent: generatedEvent
   };
 }
+
+// === EVENT GENERATORS ===
 
 export function generateRandomEvent(markets, activeEvents, stationInventories, tick) {
   const roll = Math.random();
   
-  if (roll < 0.40) {
-    // Price surge
-    const station = randomChoice(STATIONS);
-    const availableCommodityIds = stationInventories[station.id] || [];
-    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
-    
-    if (availableCommodities.length === 0) return null;
-    
-    const commodity = randomChoice(availableCommodities);
-    markets[station.id][commodity.id].demand = "high";
-    markets[station.id][commodity.id].currentPrice = 
-      Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
-    
-    return {
-      event: {
-        type: "surge",
-        stationId: station.id,
-        commodityId: commodity.id,
-        expiryTick: tick + randomInt(3, 5)
-      },
-      description: {
-        type: "surge",
-        message: `Price surge: ${commodity.name} at ${station.name}!`
-      }
-    };
-  } else if (roll < 0.65) {
-    // Shortage
-    const station = randomChoice(STATIONS);
-    const availableCommodityIds = stationInventories[station.id] || [];
-    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
-    
-    if (availableCommodities.length === 0) return null;
-    
-    const commodity = randomChoice(availableCommodities);
-    markets[station.id][commodity.id].supply = "low";
-    markets[station.id][commodity.id].currentPrice = 
-      Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
-    
-    return {
-      event: {
-        type: "shortage",
-        stationId: station.id,
-        commodityId: commodity.id,
-        expiryTick: tick + randomInt(5, 7)
-      },
-      description: {
-        type: "shortage",
-        message: `Shortage: ${commodity.name} supply low at ${station.name}!`
-      }
-    };
+  // Weight distribution (must total 1.0):
+  // 0.00-0.20 = Price Surge (20%)
+  // 0.20-0.35 = Shortage (15%)
+  // 0.35-0.50 = Glut (15%)
+  // 0.50-0.68 = Commodity Reroll (18%)
+  // 0.68-0.83 = Price Spike/Drop (15%)
+  // 0.83-0.91 = Station Boom/Recession (8%)
+  // 0.91-0.96 = Security Crackdown (5%)
+  // 0.96-1.00 = Safe Passage (4%)
+  
+  if (roll < 0.20) {
+    return generatePriceSurge(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.35) {
+    return generateShortage(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.50) {
+    return generateGlut(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.68) {
+    return generateCommodityReroll(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.83) {
+    return generatePriceSpikeOrDrop(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.91) {
+    return generateStationBoomOrRecession(markets, activeEvents, stationInventories, tick);
+  } else if (roll < 0.96) {
+    return generateSecurityCrackdown(markets, activeEvents, stationInventories, tick);
   } else {
-    // Glut
-    const station = randomChoice(STATIONS);
-    const availableCommodityIds = stationInventories[station.id] || [];
-    const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
-    
-    if (availableCommodities.length === 0) return null;
-    
-    const commodity = randomChoice(availableCommodities);
-    markets[station.id][commodity.id].supply = "high";
-    markets[station.id][commodity.id].currentPrice = 
-      Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
-    
-    return {
-      event: {
-        type: "glut",
-        stationId: station.id,
-        commodityId: commodity.id,
-        expiryTick: tick + randomInt(5, 7)
-      },
-      description: {
-        type: "glut",
-        message: `Market glut: ${commodity.name} prices crash at ${station.name}!`
-      }
-    };
+    return generateSafePassage(markets, activeEvents, stationInventories, tick);
   }
+}
+
+function generatePriceSurge(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableCommodityIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  markets[station.id][commodity.id].demand = "high";
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
+  
+  return {
+    event: {
+      type: "surge",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + randomInt(3, 5)
+    },
+    description: {
+      type: "surge",
+      message: `<strong>${commodity.name}</strong> demand soaring at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generateShortage(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableCommodityIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  markets[station.id][commodity.id].supply = "low";
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
+  
+  return {
+    event: {
+      type: "shortage",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + randomInt(5, 7)
+    },
+    description: {
+      type: "shortage",
+      message: `<strong>${commodity.name}</strong> supply critically low at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generateGlut(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableCommodityIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableCommodityIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  markets[station.id][commodity.id].supply = "high";
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
+  
+  return {
+    event: {
+      type: "glut",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + randomInt(5, 7)
+    },
+    description: {
+      type: "glut",
+      message: `<strong>${commodity.name}</strong> prices crash at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generateCommodityReroll(markets, activeEvents, stationInventories, tick) {
+  // Pick random minor station
+  const minorStations = STATIONS.filter(s => s.type === 'minor');
+  if (minorStations.length === 0) return null;
+  
+  const station = randomChoice(minorStations);
+  const oldCommodities = stationInventories[station.id] || [];
+  
+  // Generate 3 completely new random commodities
+  const newCommodities = randomSample(COMMODITIES, 3);
+  const newCommodityIds = newCommodities.map(c => c.id);
+  
+  // Update station inventory
+  stationInventories[station.id] = newCommodityIds;
+  
+  // Remove old commodities from market
+  oldCommodities.forEach(commodityId => {
+    delete markets[station.id][commodityId];
+  });
+  
+  // Add new commodities with random modifiers
+  const newModifiers = {};
+  newCommodities.forEach(commodity => {
+    const modifier = randomFloat(0.85, 1.15);
+    const basePrice = commodity.basePrice;
+    const variance = 1 + randomFloat(-0.1, 0.1);
+    
+    markets[station.id][commodity.id] = {
+      currentPrice: Math.round(basePrice * modifier * variance),
+      supply: "normal",
+      demand: "normal",
+      variance: variance
+    };
+    
+    newModifiers[commodity.id] = modifier;
+  });
+  
+  return {
+    event: {
+      type: "commodity_reroll",
+      stationId: station.id,
+      expiryTick: null,  // Permanent
+      metadata: {
+        oldCommodities,
+        newCommodities: newCommodityIds,
+        newModifiers
+      }
+    },
+    description: {
+      type: "commodity_reroll",
+      message: `New commodities available at <strong>${station.name}</strong>!`,
+      stationId: station.id,
+      stationName: station.name,
+      oldCommodities: oldCommodities.map(id => COMMODITIES.find(c => c.id === id)?.name).filter(Boolean),
+      newCommodities: newCommodities.map(c => c.name)
+    }
+  };
+}
+
+function generatePriceSpikeOrDrop(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  const isSpike = Math.random() < 0.5;
+  
+  const multiplier = isSpike
+    ? randomFloat(CONSTANTS.SPIKE_PRICE_MULT_MIN, CONSTANTS.SPIKE_PRICE_MULT_MAX)
+    : randomFloat(CONSTANTS.DROP_PRICE_MULT_MIN, CONSTANTS.DROP_PRICE_MULT_MAX);
+  
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+  
+  const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
+  
+  return {
+    event: {
+      type: isSpike ? "spike" : "drop",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: isSpike ? "spike" : "drop",
+      message: isSpike
+        ? `<strong>${commodity.name}</strong> prices soaring at <strong>${station.name}</strong>!`
+        : `<strong>${commodity.name}</strong> dumped cheap at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generateStationBoomOrRecession(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  
+  if (availableIds.length === 0) return null;
+  
+  const isBoom = Math.random() < 0.5;
+  const multiplier = isBoom ? CONSTANTS.BOOM_PRICE_MULT : CONSTANTS.RECESSION_PRICE_MULT;
+  
+  // Apply to ALL commodities at station
+  availableIds.forEach(commodityId => {
+    if (markets[station.id]?.[commodityId]) {
+      markets[station.id][commodityId].currentPrice = 
+        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+    }
+  });
+  
+  const duration = randomInt(CONSTANTS.BOOM_RECESSION_DURATION_MIN, CONSTANTS.BOOM_RECESSION_DURATION_MAX);
+  
+  return {
+    event: {
+      type: isBoom ? "boom" : "recession",
+      stationId: station.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: isBoom ? "boom" : "recession",
+      message: isBoom
+        ? `Sellers' market at <strong>${station.name}</strong>!`
+        : `Buyers' market at <strong>${station.name}</strong>!`,
+      stationName: station.name
+    }
+  };
+}
+
+function generateSecurityCrackdown(markets, activeEvents, stationInventories, tick) {
+  // Only neutral/hostile stations (not safe havens)
+  const eligibleStations = STATIONS.filter(
+    s => s.contrabandPolicy === 'neutral' || s.contrabandPolicy === 'hostile'
+  );
+  
+  if (eligibleStations.length === 0) return null;
+  
+  const station = randomChoice(eligibleStations);
+  const duration = randomInt(CONSTANTS.CRACKDOWN_DURATION_MIN, CONSTANTS.CRACKDOWN_DURATION_MAX);
+  
+  console.log(`[EVENT] Security crackdown at ${station.name} (${station.id}) - expires tick ${tick + duration} (duration: ${duration} ticks)`);
+  
+  return {
+    event: {
+      type: "crackdown",
+      stationId: station.id,
+      expiryTick: tick + duration
+    },
+    description: {
+      type: "crackdown",
+      message: `Increased patrols at <strong>${station.name}</strong>!`,
+      stationName: station.name
+    }
+  };
+}
+
+function generateSafePassage(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const duration = randomInt(CONSTANTS.SAFE_PASSAGE_DURATION_MIN, CONSTANTS.SAFE_PASSAGE_DURATION_MAX);
+  
+  return {
+    event: {
+      type: "safe_passage",
+      stationId: station.id,
+      expiryTick: tick + duration
+    },
+    description: {
+      type: "safe_passage",
+      message: `Safe passage guaranteed at <strong>${station.name}</strong>!`,
+      stationName: station.name
+    }
+  };
+}
+
+// Helper for debug panel - generate specific event type
+export function generateSpecificEvent(eventType, markets, activeEvents, stationInventories, tick) {
+  switch (eventType) {
+    case 'price_surge':
+    case 'surge':
+      return generatePriceSurge(markets, activeEvents, stationInventories, tick);
+    case 'shortage':
+      return generateShortage(markets, activeEvents, stationInventories, tick);
+    case 'glut':
+      return generateGlut(markets, activeEvents, stationInventories, tick);
+    case 'commodity_reroll':
+      return generateCommodityReroll(markets, activeEvents, stationInventories, tick);
+    case 'price_spike':
+    case 'spike':
+      return generatePriceSpike(markets, activeEvents, stationInventories, tick);
+    case 'price_drop':
+    case 'drop':
+      return generatePriceDrop(markets, activeEvents, stationInventories, tick);
+    case 'station_boom':
+    case 'boom':
+      return generateStationBoom(markets, activeEvents, stationInventories, tick);
+    case 'station_recession':
+    case 'recession':
+      return generateStationRecession(markets, activeEvents, stationInventories, tick);
+    case 'security_crackdown':
+    case 'crackdown':
+      return generateSecurityCrackdown(markets, activeEvents, stationInventories, tick);
+    case 'safe_passage':
+      return generateSafePassage(markets, activeEvents, stationInventories, tick);
+    default:
+      return null;
+  }
+}
+
+// Specific generators for debug panel (force spike/drop/boom/recession)
+function generatePriceSpike(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  const multiplier = randomFloat(CONSTANTS.SPIKE_PRICE_MULT_MIN, CONSTANTS.SPIKE_PRICE_MULT_MAX);
+  
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+  
+  const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
+  
+  return {
+    event: {
+      type: "spike",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: "spike",
+      message: `<strong>${commodity.name}</strong> prices soaring at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generatePriceDrop(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  const availableCommodities = COMMODITIES.filter(c => availableIds.includes(c.id));
+  
+  if (availableCommodities.length === 0) return null;
+  
+  const commodity = randomChoice(availableCommodities);
+  const multiplier = randomFloat(CONSTANTS.DROP_PRICE_MULT_MIN, CONSTANTS.DROP_PRICE_MULT_MAX);
+  
+  markets[station.id][commodity.id].currentPrice = 
+    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+  
+  const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
+  
+  return {
+    event: {
+      type: "drop",
+      stationId: station.id,
+      commodityId: commodity.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: "drop",
+      message: `<strong>${commodity.name}</strong> dumped cheap at <strong>${station.name}</strong>!`,
+      stationName: station.name,
+      commodityName: commodity.name
+    }
+  };
+}
+
+function generateStationBoom(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  
+  if (availableIds.length === 0) return null;
+  
+  const multiplier = CONSTANTS.BOOM_PRICE_MULT;
+  
+  // Apply to ALL commodities at station
+  availableIds.forEach(commodityId => {
+    if (markets[station.id]?.[commodityId]) {
+      markets[station.id][commodityId].currentPrice = 
+        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+    }
+  });
+  
+  const duration = randomInt(CONSTANTS.BOOM_RECESSION_DURATION_MIN, CONSTANTS.BOOM_RECESSION_DURATION_MAX);
+  
+  return {
+    event: {
+      type: "boom",
+      stationId: station.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: "boom",
+      message: `Sellers' market at <strong>${station.name}</strong>!`,
+      stationName: station.name
+    }
+  };
+}
+
+function generateStationRecession(markets, activeEvents, stationInventories, tick) {
+  const station = randomChoice(STATIONS);
+  const availableIds = stationInventories[station.id] || [];
+  
+  if (availableIds.length === 0) return null;
+  
+  const multiplier = CONSTANTS.RECESSION_PRICE_MULT;
+  
+  // Apply to ALL commodities at station
+  availableIds.forEach(commodityId => {
+    if (markets[station.id]?.[commodityId]) {
+      markets[station.id][commodityId].currentPrice = 
+        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+    }
+  });
+  
+  const duration = randomInt(CONSTANTS.BOOM_RECESSION_DURATION_MIN, CONSTANTS.BOOM_RECESSION_DURATION_MAX);
+  
+  return {
+    event: {
+      type: "recession",
+      stationId: station.id,
+      expiryTick: tick + duration,
+      multiplier
+    },
+    description: {
+      type: "recession",
+      message: `Buyers' market at <strong>${station.name}</strong>!`,
+      stationName: station.name
+    }
+  };
 }
 
 // === TRADING ACTIONS ===
@@ -531,7 +916,7 @@ export function sellCommodity(player, markets, commodityId, quantity) {
 
 // === TRAVEL ===
 
-export function travel(player, destinationId, markets = {}) {
+export function travel(player, destinationId, markets = {}, activeEvents = []) {
   const newPlayer = deepClone(player);
   
   // Validation
@@ -565,6 +950,22 @@ export function travel(player, destinationId, markets = {}) {
   newPlayer.location = destinationId;
   newPlayer.stats.stationsVisited++;
   
+  // Check for safe passage event
+  const hasSafePassage = activeEvents.some(
+    e => e.type === 'safe_passage' && 
+        (e.stationId === player.location || e.stationId === destinationId)
+  );
+  
+  if (hasSafePassage) {
+    // Skip ALL encounter checks (pirates + cops)
+    return {
+      success: true,
+      playerState: newPlayer,
+      tollFee,
+      safePassage: true
+    };
+  }
+  
   // Calculate total cargo value for risk scaling (all cargo is contraband now)
   const cargoValue = calculateTotalCargoValue(newPlayer, {});
   
@@ -593,8 +994,20 @@ export function travel(player, destinationId, markets = {}) {
       ? CONSTANTS.BASE_COP_CHANCE_HOSTILE 
       : CONSTANTS.BASE_COP_CHANCE_NEUTRAL;
     
+    // Check for security crackdown
+    const crackdownEvents = activeEvents.filter(e => e.type === 'crackdown');
+    const hasCrackdown = crackdownEvents.some(e => e.stationId === destinationId);
+    
+    console.log(`[TRAVEL] Arriving at ${destinationStation.name} (${destinationId}), Active crackdowns:`, crackdownEvents.map(e => e.stationId));
+    
     // Add cargo value risk
     let copChance = baseCopChance + (cargoValue * CONSTANTS.CARGO_VALUE_COP_MULTIPLIER);
+    
+    // Apply crackdown multiplier
+    if (hasCrackdown) {
+      copChance *= CONSTANTS.CRACKDOWN_COP_MULTIPLIER;
+      console.log(`[CRACKDOWN] Active at ${destinationStation.name}: cop chance ${copChance.toFixed(3)} (base: ${baseCopChance}, multiplier: ${CONSTANTS.CRACKDOWN_COP_MULTIPLIER}x)`);
+    }
     
     // Add bounty risk (bounty hunter scaling)
     if (newPlayer.reputation && newPlayer.reputation.currentBounty > 0) {

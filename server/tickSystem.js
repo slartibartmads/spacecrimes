@@ -92,6 +92,15 @@ export function tryAdvanceTick() {
 }
 
 /**
+ * Force tick advance immediately (for debug purposes)
+ * Bypasses all timing and travel checks
+ */
+export function forceAdvanceTick() {
+  console.log('[DEBUG] Forcing tick advancement');
+  advanceTick();
+}
+
+/**
  * Advance the game tick
  */
 function advanceTick() {

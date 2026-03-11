@@ -51,6 +51,14 @@ export function initMultiplayer(serverUrl = 'http://localhost:3000') {
     }
   });
   
+  socket.on('playerState', (data) => {
+    // Direct player state update (e.g., from debug teleport)
+    playerState = data;
+    if (callbacks.onPlayerUpdate) {
+      callbacks.onPlayerUpdate(data);
+    }
+  });
+  
   socket.on('playerUpdate', (data) => {
     // Update if it's our player
     if (data.socketId === socket.id) {
@@ -502,4 +510,156 @@ export function getGameState() {
  */
 export function isConnected() {
   return connected;
+}
+
+// === DEBUG FUNCTIONS ===
+
+/**
+ * Trigger a specific event type (for debug panel)
+ */
+export function debugTriggerEvent(eventType) {
+  return new Promise((resolve, reject) => {
+    console.log('debugTriggerEvent: checking socket connection');
+    if (!socket || !connected) {
+      console.error('debugTriggerEvent: not connected');
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    console.log('debugTriggerEvent: emitting debug:triggerEvent with', eventType);
+    socket.emit('debug:triggerEvent', { eventType }, (response) => {
+      console.log('debugTriggerEvent: received response', response);
+      if (response && response.success) {
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to trigger event'));
+      }
+    });
+  });
+}
+
+/**
+ * Force tick advancement (for debug panel)
+ */
+export function debugForceTick() {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:forceTick', {}, (response) => {
+      if (response && response.success) {
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to force tick'));
+      }
+    });
+  });
+}
+
+/**
+ * Add credits to player (for debug panel)
+ */
+export function debugAddCredits(amount) {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:addCredits', { amount }, (response) => {
+      if (response && response.success) {
+        playerState.credits = response.newCredits;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to add credits'));
+      }
+    });
+  });
+}
+
+/**
+ * Restore hull to maximum (for debug panel)
+ */
+export function debugFullHull() {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:fullHull', {}, (response) => {
+      if (response && response.success) {
+        playerState.hull = response.newHull;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to restore hull'));
+      }
+    });
+  });
+}
+
+/**
+ * Clear player bounty (for debug panel)
+ */
+export function debugClearBounty() {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:clearBounty', {}, (response) => {
+      if (response && response.success) {
+        playerState.currentBounty = 0;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to clear bounty'));
+      }
+    });
+  });
+}
+
+/**
+ * Upgrade cargo to maximum (for debug panel)
+ */
+export function debugMaxCargo() {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:maxCargo', {}, (response) => {
+      if (response && response.success) {
+        // Player state will be updated via playerState event
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to upgrade cargo'));
+      }
+    });
+  });
+}
+
+/**
+ * Teleport to a station (for debug panel)
+ */
+export function debugTeleport(stationId) {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('debug:teleport', { stationId }, (response) => {
+      if (response && response.success) {
+        // Update full player state
+        playerState = response.playerState;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Failed to teleport'));
+      }
+    });
+  });
 }

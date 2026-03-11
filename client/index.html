@@ -76,13 +76,13 @@
       </div>
 
       <!-- Commodities Table -->
-      <h3>COMMODITIES</h3>
+      <h3>STATION MARKET</h3>
       <table id="commodity-table">
         <thead>
           <tr>
-            <th>NAME</th>
+            <th>COMMODITY</th>
             <th>PRICE</th>
-            <th>HAVE</th>
+            <th>CARGO</th>
             <th>BUY/SELL</th>
           </tr>
         </thead>
@@ -219,6 +219,77 @@
       <button id="travel-proceed">PROCEED</button>
       <button id="travel-dump">DUMP CONTRABAND</button>
       <button id="travel-cancel">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- Event Notification Modal -->
+  <div id="event-modal" class="modal event-modal-overlay">
+    <div class="event-modal-container">
+      <img src="img/icon_event.svg" alt="Event" class="event-icon">
+      <div class="event-content">
+        <h2 id="event-title" class="event-title">MARKET EVENT</h2>
+        <p id="event-description" class="event-description"><!-- Event description --></p>
+        <div id="event-details" class="event-details">
+          <!-- Additional event details -->
+        </div>
+      </div>
+      <button id="event-acknowledge" class="event-button">Acknowledge!</button>
+    </div>
+  </div>
+
+  <!-- DEBUG PANEL (hidden by default, toggle with ` key) -->
+  <div id="debug-panel" style="display: none; position: fixed; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--warning-yellow); padding: 15px; z-index: 9999; max-height: 90vh; overflow-y: auto; min-width: 300px;">
+    <h3 style="color: var(--warning-yellow); margin-bottom: 10px;">DEBUG PANEL</h3>
+    <p style="font-size: 11px; color: var(--text-green-dark); margin-bottom: 15px;">Press | (pipe) to close</p>
+    
+    <!-- Event Triggers -->
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: var(--text-green); margin-bottom: 8px;">Trigger Events</h4>
+      <button class="debug-btn" id="debug-surge">Price Surge</button>
+      <button class="debug-btn" id="debug-shortage">Shortage</button>
+      <button class="debug-btn" id="debug-glut">Glut</button>
+      <button class="debug-btn" id="debug-reroll">Commodity Reroll</button>
+      <button class="debug-btn" id="debug-spike">Price Spike</button>
+      <button class="debug-btn" id="debug-drop">Price Drop</button>
+      <button class="debug-btn" id="debug-boom">Station Boom</button>
+      <button class="debug-btn" id="debug-recession">Station Recession</button>
+      <button class="debug-btn" id="debug-crackdown">Security Crackdown</button>
+      <button class="debug-btn" id="debug-safe">Safe Passage</button>
+    </div>
+    
+    <!-- Tick Control -->
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: var(--text-green); margin-bottom: 8px;">Tick Control</h4>
+      <button class="debug-btn" id="debug-force-tick">Force Tick Now</button>
+    </div>
+    
+    <!-- Player Cheats -->
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: var(--text-green); margin-bottom: 8px;">Player Cheats</h4>
+      <button class="debug-btn" id="debug-add-credits">+1000 Credits</button>
+      <button class="debug-btn" id="debug-full-hull">Full Hull</button>
+      <button class="debug-btn" id="debug-clear-bounty">Clear Bounty</button>
+      <button class="debug-btn" id="debug-max-cargo">Max Cargo Space</button>
+    </div>
+    
+    <!-- Teleport -->
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: var(--text-green); margin-bottom: 8px;">Teleport</h4>
+      <select id="debug-teleport-select" style="width: 100%; padding: 4px; background: var(--bg-black); color: var(--text-green); border: 1px solid var(--border-green); margin-bottom: 5px; font-family: 'Source Code Pro', monospace;">
+        <option value="">-- Select Station --</option>
+        <!-- Populated dynamically -->
+      </select>
+      <button class="debug-btn" id="debug-teleport">Teleport</button>
+    </div>
+    
+    <!-- Current State Info -->
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-green);">
+      <h4 style="color: var(--text-green); margin-bottom: 8px;">Current State</h4>
+      <div style="font-size: 11px; color: var(--text-green-dark);">
+        <div>Tick: <span id="debug-tick">0</span></div>
+        <div>Active Events: <span id="debug-event-count">0</span></div>
+        <div>Location: <span id="debug-location">---</span></div>
+      </div>
     </div>
   </div>
 

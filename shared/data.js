@@ -599,7 +599,7 @@ const CONSTANTS = {
   BASE_INSPECTION_CHANCE: 0.30,
   INSPECTION_FINE_RATE: 0.50,
   
-  TICK_EVENT_CHANCE: 0.15,
+  TICK_EVENT_CHANCE: 0.05,                     // 5% chance per tick (reduced from 7.5%)
   PRICE_DRIFT_RATE: 0.025,                     // Slower drift (was 0.05)
   
   PLAYER_BUY_PRICE_INCREASE: 0.04,
@@ -612,9 +612,29 @@ const CONSTANTS = {
   LEGAL_VARIANCE: 0.20,
   CONTRABAND_VARIANCE: 0.10,                   // Reduced variance (was 0.40) since modifiers provide variation
   
+  // Event price multipliers
   SHORTAGE_PRICE_MULT: 1.4,
   SURPLUS_PRICE_MULT: 0.7,
   SURGE_PRICE_MULT: 1.5,
+  SPIKE_PRICE_MULT_MIN: 1.5,
+  SPIKE_PRICE_MULT_MAX: 1.8,
+  DROP_PRICE_MULT_MIN: 0.4,
+  DROP_PRICE_MULT_MAX: 0.6,
+  BOOM_PRICE_MULT: 1.2,                        // +20%
+  RECESSION_PRICE_MULT: 0.8,                   // -20%
+  
+  // Event durations
+  SPIKE_DROP_DURATION_MIN: 2,
+  SPIKE_DROP_DURATION_MAX: 4,
+  BOOM_RECESSION_DURATION_MIN: 4,
+  BOOM_RECESSION_DURATION_MAX: 6,
+  CRACKDOWN_DURATION_MIN: 3,
+  CRACKDOWN_DURATION_MAX: 5,
+  SAFE_PASSAGE_DURATION_MIN: 2,
+  SAFE_PASSAGE_DURATION_MAX: 3,
+  
+  // Event modifiers
+  CRACKDOWN_COP_MULTIPLIER: 2.5,               // 2.5x cop encounter chance during crackdown
   
   // Combat - Multi-round system
   COMBAT_ROUNDS_MIN: 2,

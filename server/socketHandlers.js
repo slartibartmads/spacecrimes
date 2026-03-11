@@ -30,10 +30,12 @@ import {
   handlePvpVictory,
   handlePvpDefeat,
   calculateTotalCargoValue,
-  getPlayerAttackBonus
+  getPlayerAttackBonus,
+  generateSpecificEvent,
+  getPlayerMaxCargo
 } from './gameLogic.js';
 import { STATIONS } from '../shared/data.js';
-import { tryAdvanceTick, getTimeUntilNextTick } from './tickSystem.js';
+import { tryAdvanceTick, getTimeUntilNextTick, forceAdvanceTick } from './tickSystem.js';
 
 /**
  * Set up all Socket.IO event handlers
@@ -116,6 +118,9 @@ export function setupSocketHandlers(io) {
     socket.on('clearCombat', (data, callback) => {
       handleClearCombat(socket, callback);
     });
+    
+    // Setup debug handlers
+    setupDebugHandlers(socket, io);
     
     // Disconnect
     socket.on('disconnect', () => {
@@ -286,7 +291,7 @@ function handleTravel(socket, data, callback, io) {
   }
   
   const state = getServerState();
-  const result = travel(player, destination, state.markets);
+  const result = travel(player, destination, state.markets, state.activeEvents);
   
   if (!result.success) {
     callback({ success: false, error: result.error });
@@ -1193,5 +1198,231 @@ function handleClearCombat(socket, callback) {
   updatePlayer(socket.id, player);
   
   callback({ success: true, message: 'Combat state cleared' });
+}
+
+/**
+ * Setup debug panel handlers
+ */
+function setupDebugHandlers(socket, io) {
+  console.log('[DEBUG] Setting up debug handlers for socket:', socket.id);
+  
+  // Trigger specific event type
+  socket.on('debug:triggerEvent', (data, callback) => {
+    console.log('[DEBUG] Received debug:triggerEvent from', socket.id, 'with data:', data);
+    try {
+      const { eventType } = data;
+      const state = getServerState();
+      
+      if (!eventType) {
+        return callback({ success: false, error: 'Event type required' });
+      }
+      
+      // Generate the specific event
+      const result = generateSpecificEvent(
+        eventType,
+        state.markets,
+        state.activeEvents,
+        state.stationInventories,
+        state.tick
+      );
+      
+      if (!result) {
+        return callback({ success: false, error: 'Failed to generate event' });
+      }
+      
+      // Add event to active events (only the event part, not the description)
+      state.activeEvents.push(result.event);
+      
+      console.log(`[DEBUG] Triggered ${eventType} event:`, result);
+      
+      // Broadcast the new event to all players (send only description, like processTick does)
+      io.emit('tick', {
+        tick: state.tick,
+        newEvent: result.description,
+        markets: state.markets,
+        stationInventories: state.stationInventories,
+        activeEvents: state.activeEvents
+      });
+      
+      callback({ success: true, event: result });
+    } catch (error) {
+      console.error('Debug trigger event error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Force tick advancement
+  socket.on('debug:forceTick', (data, callback) => {
+    try {
+      const state = getServerState();
+      
+      // Mark player as traveled if not already (so they don't get stuck)
+      if (!hasPlayerTraveled(socket.id)) {
+        markPlayerTraveled(socket.id);
+      }
+      
+      // Force tick immediately, bypassing all checks
+      forceAdvanceTick();
+      
+      console.log('[DEBUG] Forced tick advancement');
+      callback({ success: true, newTick: state.tick });
+    } catch (error) {
+      console.error('Debug force tick error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Add credits
+  socket.on('debug:addCredits', (data, callback) => {
+    try {
+      const { amount } = data;
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      if (!amount || amount <= 0) {
+        return callback({ success: false, error: 'Invalid amount' });
+      }
+      
+      player.credits += amount;
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Added ${amount} credits to ${player.name}`);
+      
+      callback({ success: true, newCredits: player.credits });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update
+      io.emit('playerUpdate', getAllPublicPlayerInfo());
+    } catch (error) {
+      console.error('Debug add credits error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Restore full hull
+  socket.on('debug:fullHull', (data, callback) => {
+    try {
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      player.hull = player.hullMax;
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Restored full hull for ${player.name}`);
+      
+      callback({ success: true, newHull: player.hull });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update
+      io.emit('playerUpdate', getAllPublicPlayerInfo());
+    } catch (error) {
+      console.error('Debug full hull error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Clear bounty
+  socket.on('debug:clearBounty', (data, callback) => {
+    try {
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      player.currentBounty = 0;
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Cleared bounty for ${player.name}`);
+      
+      callback({ success: true });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update
+      io.emit('playerUpdate', getAllPublicPlayerInfo());
+    } catch (error) {
+      console.error('Debug clear bounty error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Max cargo upgrade
+  socket.on('debug:maxCargo', (data, callback) => {
+    try {
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      player.upgrades.cargo = 5; // Max tier
+      player.cargoMax = getPlayerMaxCargo(player); // Recalculate cargoMax
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Maxed cargo for ${player.name}, new cargoMax: ${player.cargoMax}`);
+      
+      callback({ success: true, newCargoUpgrade: player.upgrades.cargo });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update
+      io.emit('playerUpdate', getAllPublicPlayerInfo());
+    } catch (error) {
+      console.error('Debug max cargo error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+  
+  // Teleport to station
+  socket.on('debug:teleport', (data, callback) => {
+    try {
+      const { stationId } = data;
+      const player = getPlayer(socket.id);
+      
+      if (!player) {
+        return callback({ success: false, error: 'Player not found' });
+      }
+      
+      if (!stationId) {
+        return callback({ success: false, error: 'Station ID required' });
+      }
+      
+      const station = STATIONS.find(s => s.id === stationId);
+      if (!station) {
+        return callback({ success: false, error: 'Invalid station ID' });
+      }
+      
+      // Cancel any active travel
+      player.traveling = null;
+      player.location = stationId;
+      updatePlayer(socket.id, player);
+      
+      console.log(`[DEBUG] Teleported ${player.name} to ${station.name}`);
+      
+      callback({ success: true, playerState: player });
+      
+      // Send updated player state directly to the player
+      socket.emit('playerState', player);
+      
+      // Broadcast player update to all clients (for leaderboard/map)
+      io.emit('playerUpdate', getAllPublicPlayerInfo());
+    } catch (error) {
+      console.error('Debug teleport error:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
 }
 

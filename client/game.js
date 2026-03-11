@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLeaderboard();
     }
   }, 5000);
+  
+  // Initialize debug panel
+  initializeDebugPanel();
 });
 
 // === LOGIN ===
@@ -125,6 +128,9 @@ function handleConnected(player, state) {
   playerState = player;
   gameState = state;
   allPlayers = state.players || [];
+  
+  // Update page title with player name
+  document.title = `${player.name} - SPACECRIMES`;
   
   // Hide login screen, show game
   document.getElementById('login-screen').style.display = 'none';
@@ -199,9 +205,10 @@ function handleTick(data) {
   gameState.markets = data.markets;
   gameState.activeEvents = data.activeEvents;
   
-  // Log new events
+  // Show event modal for new events
   if (data.newEvent) {
-    addLog(`MARKET EVENT: ${data.newEvent.description}`, 'warning');
+    showEventModal(data.newEvent);
+    addLog(`MARKET EVENT: ${data.newEvent.message}`, 'warning');
   }
   
   // Log expired events
@@ -213,6 +220,51 @@ function handleTick(data) {
   
   renderStation();
   renderStatus();
+}
+
+function showEventModal(eventData) {
+  const modal = document.getElementById('event-modal');
+  const overlay = document.getElementById('modal-overlay');
+  const title = document.getElementById('event-title');
+  const description = document.getElementById('event-description');
+  const details = document.getElementById('event-details');
+  
+  // Set title based on event type
+  const titleMap = {
+    'surge': 'DEMAND SURGE',
+    'shortage': 'SUPPLY SHORTAGE',
+    'glut': 'SUPPLY GLUT',
+    'commodity_reroll': 'MARKET SHIFT',
+    'spike': 'PRICE SPIKE',
+    'drop': 'PRICE DROP',
+    'boom': 'STATION BOOM',
+    'recession': 'STATION RECESSION',
+    'crackdown': 'SECURITY ALERT',
+    'safe_passage': 'ALL CLEAR'
+  };
+  
+  title.textContent = titleMap[eventData.type] || 'MARKET EVENT';
+  
+  // Special handling for commodity reroll - show commodities inline
+  if (eventData.type === 'commodity_reroll' && eventData.newCommodities) {
+    const commoditiesList = eventData.newCommodities.map(c => `<strong>${c}</strong>`).join('<br>');
+    description.innerHTML = `New commodities available at <strong>${eventData.stationName}</strong>:<br>${commoditiesList}`;
+    details.innerHTML = '';
+  } else {
+    description.innerHTML = eventData.message;
+    details.innerHTML = '';
+  }
+  
+  // Show modal
+  modal.classList.add('active');
+  overlay.classList.add('active');
+  
+  // Set up acknowledge button
+  const acknowledgeBtn = document.getElementById('event-acknowledge');
+  acknowledgeBtn.onclick = () => {
+    modal.classList.remove('active');
+    overlay.classList.remove('active');
+  };
 }
 
 function handleActivityUpdate(newActivities) {
@@ -270,6 +322,8 @@ function handleDeath() {
 // === RENDERING ===
 
 function renderMap() {
+  if (!playerState) return; // Safety check
+  
   const routesLayer = document.getElementById('routes-layer');
   const stationsLayer = document.getElementById('stations-layer');
   const playersLayer = document.getElementById('players-layer');
@@ -1503,3 +1557,239 @@ window.clearStuckCombat = async function() {
     console.error('Clear combat error:', error);
   }
 };
+
+// === DEBUG PANEL ===
+
+function initializeDebugPanel() {
+  const debugPanel = document.getElementById('debug-panel');
+  if (!debugPanel) {
+    console.error('Debug panel not found in DOM');
+    return;
+  }
+  
+  console.log('Initializing debug panel...');
+  
+  // Toggle debug panel with pipe key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '|') {
+      e.preventDefault();
+      const isVisible = debugPanel.style.display === 'block';
+      debugPanel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        updateDebugPanel();
+      }
+    }
+  });
+  
+  // Populate teleport dropdown with stations
+  const teleportSelect = document.getElementById('debug-teleport-select');
+  if (teleportSelect && STATIONS) {
+    STATIONS.forEach(station => {
+      const option = document.createElement('option');
+      option.value = station.id;
+      option.textContent = station.name;
+      teleportSelect.appendChild(option);
+    });
+    console.log('Populated teleport dropdown with', STATIONS.length, 'stations');
+  }
+  
+  // Event trigger buttons
+  const surgeBtn = document.getElementById('debug-surge');
+  console.log('debug-surge button:', surgeBtn);
+  
+  document.getElementById('debug-surge')?.addEventListener('click', () => {
+    console.log('Surge button clicked');
+    triggerDebugEvent('price_surge');
+  });
+  document.getElementById('debug-shortage')?.addEventListener('click', () => {
+    console.log('Shortage button clicked');
+    triggerDebugEvent('shortage');
+  });
+  document.getElementById('debug-glut')?.addEventListener('click', () => {
+    console.log('Glut button clicked');
+    triggerDebugEvent('glut');
+  });
+  document.getElementById('debug-reroll')?.addEventListener('click', () => {
+    console.log('Reroll button clicked');
+    triggerDebugEvent('commodity_reroll');
+  });
+  document.getElementById('debug-spike')?.addEventListener('click', () => {
+    console.log('Spike button clicked');
+    triggerDebugEvent('price_spike');
+  });
+  document.getElementById('debug-drop')?.addEventListener('click', () => {
+    console.log('Drop button clicked');
+    triggerDebugEvent('price_drop');
+  });
+  document.getElementById('debug-boom')?.addEventListener('click', () => {
+    console.log('Boom button clicked');
+    triggerDebugEvent('station_boom');
+  });
+  document.getElementById('debug-recession')?.addEventListener('click', () => {
+    console.log('Recession button clicked');
+    triggerDebugEvent('station_recession');
+  });
+  document.getElementById('debug-crackdown')?.addEventListener('click', () => {
+    console.log('Crackdown button clicked');
+    triggerDebugEvent('security_crackdown');
+  });
+  document.getElementById('debug-safe')?.addEventListener('click', () => {
+    console.log('Safe passage button clicked');
+    triggerDebugEvent('safe_passage');
+  });
+  
+  // Tick control
+  document.getElementById('debug-force-tick')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugForceTick();
+      if (result.success) {
+        addLog('Forced tick advancement', 'info');
+      }
+    } catch (error) {
+      addLog('Failed to force tick: ' + error.message, 'danger');
+    }
+  });
+  
+  // Cheat buttons
+  document.getElementById('debug-add-credits')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugAddCredits(1000);
+      if (result.success) {
+        addLog('Added 1000 credits', 'success');
+        
+        // Update UI immediately
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          renderStatus();
+        }
+      }
+    } catch (error) {
+      addLog('Failed to add credits: ' + error.message, 'danger');
+    }
+  });
+  
+  document.getElementById('debug-full-hull')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugFullHull();
+      if (result.success) {
+        addLog('Hull fully restored', 'success');
+        
+        // Update UI immediately
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          renderStatus();
+        }
+      }
+    } catch (error) {
+      addLog('Failed to restore hull: ' + error.message, 'danger');
+    }
+  });
+  
+  document.getElementById('debug-clear-bounty')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugClearBounty();
+      if (result.success) {
+        addLog('Bounty cleared', 'success');
+        
+        // Update UI immediately
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          renderStatus();
+        }
+      }
+    } catch (error) {
+      addLog('Failed to clear bounty: ' + error.message, 'danger');
+    }
+  });
+  
+  document.getElementById('debug-max-cargo')?.addEventListener('click', async () => {
+    try {
+      const result = await MP.debugMaxCargo();
+      if (result.success) {
+        addLog('Cargo upgraded to maximum', 'success');
+        
+        // Update UI immediately
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          renderStatus();
+        }
+      }
+    } catch (error) {
+      addLog('Failed to upgrade cargo: ' + error.message, 'danger');
+    }
+  });
+  
+  // Teleport
+  document.getElementById('debug-teleport')?.addEventListener('click', async () => {
+    const stationId = teleportSelect.value;
+    if (!stationId) return;
+    
+    try {
+      const result = await MP.debugTeleport(stationId);
+      if (result.success) {
+        const station = STATIONS.find(s => s.id === stationId);
+        
+        // Get updated player state from multiplayer module
+        const updatedState = MP.getPlayerState();
+        if (updatedState) {
+          playerState = updatedState;
+          gameState = MP.getGameState();
+          
+          // Full UI refresh
+          renderMap();
+          renderStation();
+          renderStatus();
+          renderPlayersHere();
+          updateDebugPanel();
+          
+          addLog(`Teleported to ${station?.name || stationId}`, 'success');
+        }
+      }
+    } catch (error) {
+      addLog('Failed to teleport: ' + error.message, 'danger');
+    }
+  });
+  
+  console.log('Debug panel initialized successfully');
+}
+
+async function triggerDebugEvent(eventType) {
+  console.log('triggerDebugEvent called with:', eventType);
+  try {
+    console.log('Calling MP.debugTriggerEvent...');
+    const result = await MP.debugTriggerEvent(eventType);
+    console.log('Result:', result);
+    if (result.success) {
+      addLog(`Triggered ${eventType} event`, 'info');
+    }
+  } catch (error) {
+    console.error('Error triggering event:', error);
+    addLog(`Failed to trigger ${eventType}: ` + error.message, 'danger');
+  }
+}
+
+function updateDebugPanel() {
+  if (!playerState || !gameState) return;
+  
+  // Update individual elements
+  const tickElem = document.getElementById('debug-tick');
+  const eventCountElem = document.getElementById('debug-event-count');
+  const locationElem = document.getElementById('debug-location');
+  
+  if (tickElem) {
+    tickElem.textContent = gameState.currentTick || 0;
+  }
+  
+  if (eventCountElem) {
+    eventCountElem.textContent = gameState.activeEvents?.length || 0;
+  }
+  
+  if (locationElem) {
+    const location = STATIONS.find(s => s.id === playerState.location);
+    locationElem.textContent = location?.name || playerState.location;
+  }
+}
