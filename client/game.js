@@ -609,7 +609,14 @@ function renderStation() {
       arrowColor = '#FF5A41'; // Red for up arrows
     }
     
-    priceCell.textContent = `${marketData.currentPrice}cr `;
+    // Use flexbox to right-align arrows
+    priceCell.style.display = 'flex';
+    priceCell.style.justifyContent = 'space-between';
+    priceCell.style.alignItems = 'center';
+    
+    const priceText = document.createElement('span');
+    priceText.textContent = `${marketData.currentPrice}cr`;
+    priceCell.appendChild(priceText);
     
     if (svgPath) {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -619,7 +626,6 @@ function renderStation() {
       svg.classList.add('price-arrow');
       svg.style.display = 'inline-block';
       svg.style.verticalAlign = 'middle';
-      svg.style.marginLeft = '4px';
       
       const paths = svgPath.split('M').filter(p => p.trim());
       paths.forEach(pathData => {
@@ -632,6 +638,11 @@ function renderStation() {
       });
       
       priceCell.appendChild(svg);
+    } else {
+      // Add spacer to keep alignment when no arrow
+      const spacer = document.createElement('span');
+      spacer.style.width = '10px';
+      priceCell.appendChild(spacer);
     }
     row.appendChild(priceCell);
     
