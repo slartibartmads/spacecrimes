@@ -53,8 +53,8 @@ export function getPlayerMaxCargo(player) {
 }
 
 export function getPlayerMaxHull(player) {
-  const hullTier = getUpgradeTier(player, 'hull');
-  const hullUpgrade = UPGRADES.find(u => u.id === 'hull');
+  const hullTier = getUpgradeTier(player, 'shields');
+  const hullUpgrade = UPGRADES.find(u => u.id === 'shields');
   return CONSTANTS.STARTING_HULL + (hullTier * hullUpgrade.effectPerTier);
 }
 
