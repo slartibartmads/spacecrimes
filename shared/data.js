@@ -216,7 +216,7 @@ const STATIONS = [
     name: "Crimson Anchorage",
     type: "minor",
     description: "Blood-stained refueling station",
-    position: { x: 362, y: 246 },
+    position: { x: 312, y: 246 },
     contrabandPolicy: "safe",
     priceModifiers: {
       "croakers": 1.2,
@@ -404,55 +404,72 @@ const COMMODITIES = [
 ];
 
 const ROUTES = [
-  // === INNER SYSTEM (Tight cluster) ===
-  { from: "fort_attrition", to: "caveat_emptor" },
-  { from: "fort_attrition", to: "minor_11" },
-  { from: "caveat_emptor", to: "minor_8" },
-  { from: "caveat_emptor", to: "minor_10" },
-  { from: "minor_8", to: "minor_9" },
-  { from: "minor_10", to: "minor_11" },
-  { from: "minor_9", to: "caveat_emptor" },
+  // Cinder Post (minor_11) ↔ Fort Attrition
   { from: "minor_11", to: "fort_attrition" },
-  
-  // === MID SYSTEM ===
-  { from: "vice_berth", to: "disruptive_smelting" },
-  { from: "vice_berth", to: "minor_1" },
-  { from: "disruptive_smelting", to: "minor_3" },
-  { from: "minor_1", to: "minor_2" },
-  { from: "minor_2", to: "minor_12" },
-  { from: "minor_3", to: "disruptive_smelting" },
+  { from: "fort_attrition", to: "minor_11" },
+  // Fort Attrition ↔ Relay Prime (minor_10)
+  { from: "fort_attrition", to: "minor_10" },
+  { from: "minor_10", to: "fort_attrition" },
+  // Fort Attrition ↔ Apex Station (minor_8)
+  { from: "fort_attrition", to: "minor_8" },
+  { from: "minor_8", to: "fort_attrition" },
+  // Caveat Emptor ↔ Apex Station (minor_8)
+  { from: "caveat_emptor", to: "minor_8" },
+  { from: "minor_8", to: "caveat_emptor" },
+  // Caveat Emptor ↔ Relay Prime (minor_10)
+  { from: "caveat_emptor", to: "minor_10" },
+  { from: "minor_10", to: "caveat_emptor" },
+  // Caveat Emptor ↔ Fractured Berth (minor_9)
+  { from: "caveat_emptor", to: "minor_9" },
+  { from: "minor_9", to: "caveat_emptor" },
+  // Fractured Berth (minor_9) ↔ Wreck Hub (minor_12)
+  { from: "minor_9", to: "minor_12" },
+  { from: "minor_12", to: "minor_9" },
+  // Wreck Hub (minor_12) ↔ Disruptive Smelting Solutions
   { from: "minor_12", to: "disruptive_smelting" },
-  
-  // === OUTER SYSTEM ===
-  { from: "nuevo_eden", to: "makinen_tanaka" },
-  { from: "nuevo_eden", to: "minor_5" },
-  { from: "makinen_tanaka", to: "minor_6" },
-  { from: "minor_4", to: "minor_5" },
-  { from: "minor_6", to: "minor_7" },
-  { from: "minor_5", to: "nuevo_eden" },
-  { from: "minor_7", to: "makinen_tanaka" },
-  
-  // === CROSS-TIER CONNECTIONS (with tolls) ===
-  // Inner → Mid
-  { from: "caveat_emptor", to: "vice_berth", tollFee: 50 },
-  { from: "fort_attrition", to: "disruptive_smelting", tollFee: 60 },
-  { from: "minor_10", to: "minor_1" },
-  { from: "minor_9", to: "minor_3" },
-  
-  // Mid → Outer
-  { from: "vice_berth", to: "nuevo_eden", tollFee: 75 },
-  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 80 },
-  { from: "minor_2", to: "minor_4" },
-  { from: "minor_3", to: "minor_7" },
-  
-  // Inner → Outer (express routes, high tolls)
-  { from: "caveat_emptor", to: "makinen_tanaka", tollFee: 150 },
-  { from: "fort_attrition", to: "nuevo_eden", tollFee: 125 },
-  
-  // Additional connections for network redundancy
+  { from: "disruptive_smelting", to: "minor_12" },
+  // Disruptive Smelting Solutions ↔ Crimson Anchorage (minor_3)
+  { from: "disruptive_smelting", to: "minor_3" },
+  { from: "minor_3", to: "disruptive_smelting" },
+  // Disruptive Smelting Solutions ↔ Mäkinen-Tanaka Institute (TOLL)
+  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 250 },
+  { from: "makinen_tanaka", to: "disruptive_smelting", tollFee: 250 },
+  // Crimson Anchorage (minor_3) ↔ Relay Prime (minor_10)
+  { from: "minor_3", to: "minor_10" },
+  { from: "minor_10", to: "minor_3" },
+  // Crimson Anchorage (minor_3) ↔ Phantom Junction (minor_2)
+  { from: "minor_3", to: "minor_2" },
+  { from: "minor_2", to: "minor_3" },
+  // Vice Berth ↔ Rusted Depot (minor_1)
+  { from: "vice_berth", to: "minor_1" },
   { from: "minor_1", to: "vice_berth" },
+  // Vice Berth ↔ Phantom Junction (minor_2)
+  { from: "vice_berth", to: "minor_2" },
+  { from: "minor_2", to: "vice_berth" },
+  // Rusted Depot (minor_1) ↔ Salvage Haven (minor_5)
+  { from: "minor_1", to: "minor_5" },
+  { from: "minor_5", to: "minor_1" },
+  // Nuevo Eden ↔ Salvage Haven (minor_5)
+  { from: "nuevo_eden", to: "minor_5" },
+  { from: "minor_5", to: "nuevo_eden" },
+  // Nuevo Eden ↔ Void Terminal (minor_4)
+  { from: "nuevo_eden", to: "minor_4" },
   { from: "minor_4", to: "nuevo_eden" },
-  { from: "minor_8", to: "fort_attrition" }
+  // Mäkinen-Tanaka Institute ↔ Drifter Nexus (minor_6)
+  { from: "makinen_tanaka", to: "minor_6" },
+  { from: "minor_6", to: "makinen_tanaka" },
+  // Mäkinen-Tanaka Institute ↔ Scorched Point (minor_7)
+  { from: "makinen_tanaka", to: "minor_7" },
+  { from: "minor_7", to: "makinen_tanaka" },
+  // Void Terminal (minor_4) ↔ Phantom Junction (minor_2)
+  { from: "minor_4", to: "minor_2" },
+  { from: "minor_2", to: "minor_4" },
+  // Void Terminal (minor_4) ↔ Drifter Nexus (minor_6)
+  { from: "minor_4", to: "minor_6" },
+  { from: "minor_6", to: "minor_4" },
+  // Fort Attrition ↔ Vice Berth (TOLL)
+  { from: "fort_attrition", to: "vice_berth", tollFee: 250 },
+  { from: "vice_berth", to: "fort_attrition", tollFee: 250 }
 ];
 
 const UPGRADES = [

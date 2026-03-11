@@ -279,7 +279,7 @@ function renderMap() {
     line.setAttribute('x2', to.position.x);
     line.setAttribute('y2', to.position.y);
     line.setAttribute('stroke', isToll ? '#FF5A41' : '#17D773');
-    line.setAttribute('stroke-width', isToll ? '2.4' : '1');
+    line.setAttribute('stroke-width', '2');
     line.setAttribute('opacity', isToll ? '0.25' : '0.3');
     routesLayer.appendChild(line);
     
@@ -326,13 +326,13 @@ function renderMap() {
     hexagon.setAttribute('points', points.join(' '));
     hexagon.setAttribute('fill', '#105626');
     hexagon.setAttribute('stroke', '#17D773');
-    hexagon.setAttribute('stroke-width', '2.4');
+    hexagon.setAttribute('stroke-width', isMajor ? '3.4' : '2.4');
     
     // Highlight current location
     if (station.id === playerState.location) {
       hexagon.setAttribute('fill', '#2A7A3F');
       hexagon.setAttribute('stroke', '#F2FFC5');
-      hexagon.setAttribute('stroke-width', '3');
+      hexagon.setAttribute('stroke-width', isMajor ? '4' : '3');
     }
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
