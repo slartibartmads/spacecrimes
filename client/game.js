@@ -490,7 +490,7 @@ function renderStation() {
     stationIcon.style.display = 'none';
   }
   
-  document.getElementById('station-name').textContent = station.name.toUpperCase();
+  document.getElementById('station-name').textContent = station.name;
   document.getElementById('station-description').textContent = station.description;
   
   // Render commodities
