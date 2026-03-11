@@ -500,7 +500,7 @@ const UPGRADES = [
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 5,
-    description: "+5 Damage",
+    description: "+5 Firepower",
     effectType: 'weapon'
   }
 ];
