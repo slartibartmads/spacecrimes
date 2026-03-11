@@ -340,10 +340,10 @@ function renderMap() {
       // Major station: use icon (which includes hexagon background)
       const icon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       icon.setAttributeNS('http://www.w3.org/1999/xlink', 'href', stationIcons[station.id]);
-      icon.setAttribute('width', '28');
-      icon.setAttribute('height', '28');
-      icon.setAttribute('x', station.position.x - 14);
-      icon.setAttribute('y', station.position.y - 14);
+      icon.setAttribute('width', '35');
+      icon.setAttribute('height', '35');
+      icon.setAttribute('x', station.position.x - 17.5);
+      icon.setAttribute('y', station.position.y - 17.5);
       group.appendChild(icon);
     } else {
       // Minor station: use hexagon
