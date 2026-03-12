@@ -806,7 +806,9 @@ export function buyCommodity(player, markets, commodityId, quantity) {
     return { success: false, error: 'Commodity not available at this station' };
   }
   
-  const totalCost = market.currentPrice * quantity;
+  // Apply buy markup (players pay above market price)
+  const buyPrice = Math.round(market.currentPrice * (1 + CONSTANTS.BUY_MARKUP));
+  const totalCost = buyPrice * quantity;
   
   // Validation
   if (newPlayer.credits < totalCost) {
@@ -824,11 +826,31 @@ export function buyCommodity(player, markets, commodityId, quantity) {
   // Deduct credits
   newPlayer.credits -= totalCost;
   
-  // Add cargo
+  // Add cargo and track average buy price
   if (!newPlayer.cargo[commodityId]) {
-    newPlayer.cargo[commodityId] = 0;
+    // First purchase of this commodity
+    newPlayer.cargo[commodityId] = {
+      quantity: quantity,
+      avgBuyPrice: buyPrice
+    };
+  } else {
+    // Handle both legacy (number) and new (object) format
+    const existingCargo = typeof newPlayer.cargo[commodityId] === 'number'
+      ? { quantity: newPlayer.cargo[commodityId], avgBuyPrice: 0 }
+      : newPlayer.cargo[commodityId];
+    
+    // Calculate weighted average buy price
+    const totalQuantity = existingCargo.quantity + quantity;
+    const totalCost = (existingCargo.quantity * existingCargo.avgBuyPrice) + (quantity * buyPrice);
+    const newAvgBuyPrice = existingCargo.avgBuyPrice > 0 
+      ? Math.round(totalCost / totalQuantity)
+      : buyPrice;
+    
+    newPlayer.cargo[commodityId] = {
+      quantity: totalQuantity,
+      avgBuyPrice: newAvgBuyPrice
+    };
   }
-  newPlayer.cargo[commodityId] += quantity;
   newPlayer.cargoUsed += quantity;
   
   // Increase price at current station
@@ -876,8 +898,13 @@ export function sellCommodity(player, markets, commodityId, quantity) {
   }
   
   // Validation
-  const currentQuantity = newPlayer.cargo[commodityId] || 0;
-  if (currentQuantity < quantity) {
+  // Handle both legacy (number) and new (object) format
+  const cargoData = typeof newPlayer.cargo[commodityId] === 'number'
+    ? { quantity: newPlayer.cargo[commodityId], avgBuyPrice: 0 }
+    : newPlayer.cargo[commodityId];
+  
+  const currentQuantity = cargoData ? cargoData.quantity : 0;
+  if (!cargoData || currentQuantity < quantity) {
     return { success: false, error: `You only have ${currentQuantity} ${commodityId}` };
   }
   
@@ -885,15 +912,23 @@ export function sellCommodity(player, markets, commodityId, quantity) {
     return { success: false, error: 'Invalid quantity' };
   }
   
-  const totalRevenue = market.currentPrice * quantity;
+  // Apply sell markdown (players receive below market price)
+  const sellPrice = Math.round(market.currentPrice * (1 - CONSTANTS.SELL_MARKDOWN));
+  const totalRevenue = sellPrice * quantity;
   
   // Add credits
   newPlayer.credits += totalRevenue;
   
   // Remove cargo
-  newPlayer.cargo[commodityId] -= quantity;
-  if (newPlayer.cargo[commodityId] <= 0) {
+  if (quantity >= currentQuantity) {
+    // Selling all
     delete newPlayer.cargo[commodityId];
+  } else {
+    // Selling partial - keep the same avgBuyPrice
+    newPlayer.cargo[commodityId] = {
+      quantity: currentQuantity - quantity,
+      avgBuyPrice: cargoData.avgBuyPrice
+    };
   }
   newPlayer.cargoUsed -= quantity;
   

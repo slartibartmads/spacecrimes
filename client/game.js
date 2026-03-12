@@ -854,7 +854,11 @@ function renderStation() {
       return;
     }
     
-    const playerQuantity = playerState.cargo[commodity.id] || 0;
+    // Handle both legacy (number) and new (object) format for cargo
+    const cargoData = playerState.cargo[commodity.id];
+    const playerQuantity = cargoData 
+      ? (typeof cargoData === 'number' ? cargoData : cargoData.quantity)
+      : 0;
     
     const row = document.createElement('tr');
     
@@ -877,65 +881,23 @@ function renderStation() {
     
     row.appendChild(nameCell);
     
-    // Price with arrow indicator
-    const priceCell = document.createElement('td');
+    // Calculate buy and sell prices (with markup/markdown)
+    const buyPrice = Math.round(marketData.currentPrice * 1.05); // 5% markup
+    const sellPrice = Math.round(marketData.currentPrice * 0.95); // 5% markdown
     
-    // Calculate price difference from base
-    const priceDiff = marketData.currentPrice - commodity.basePrice;
-    const pricePercent = Math.round((priceDiff / commodity.basePrice) * 100);
+    // BUY price column
+    const buyPriceCell = document.createElement('td');
+    buyPriceCell.textContent = `${buyPrice}cr`;
+    buyPriceCell.style.color = '#FF5A41'; // Red for buy (expensive)
+    row.appendChild(buyPriceCell);
     
-    // Determine price indicators with SVG icons
-    let svgPath = null;
-    let arrowColor = '#17D773'; // Default green
+    // SELL price column
+    const sellPriceCell = document.createElement('td');
+    sellPriceCell.textContent = `${sellPrice}cr`;
+    sellPriceCell.style.color = '#17D773'; // Green for sell (cheap)
+    row.appendChild(sellPriceCell);
     
-    if (pricePercent < -15) {
-      svgPath = 'M13.7782 7.22182L7.99998 13L2.2218 7.22182M13.7782 1.44365L7.99998 7.22182L2.2218 1.44365'; // lowest
-      arrowColor = '#17D773'; // Green for down arrows
-    } else if (pricePercent < -5) {
-      svgPath = 'M2.22185 5.22182L8.00002 11L13.7782 5.22182'; // low
-      arrowColor = '#17D773'; // Green for down arrows
-    } else if (pricePercent > 15) {
-      svgPath = 'M13.7782 8.77818L7.99998 3L2.2218 8.77818M13.7782 14.5564L7.99998 8.77818L2.2218 14.5564'; // highest
-      arrowColor = '#FF5A41'; // Red for up arrows
-    } else if (pricePercent > 5) {
-      svgPath = 'M13.7782 10.7782L7.99998 5L2.2218 10.7782'; // high
-      arrowColor = '#FF5A41'; // Red for up arrows
-    }
-    
-    // Create wrapper for price text
-    const priceWrapper = document.createElement('span');
-    priceWrapper.textContent = `${marketData.currentPrice}cr`;
-    priceCell.appendChild(priceWrapper);
-    
-    if (svgPath) {
-      const arrowWrapper = document.createElement('span');
-      arrowWrapper.style.float = 'right';
-      arrowWrapper.style.lineHeight = '1';
-      arrowWrapper.style.marginTop = '3px';
-      
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('width', '10');
-      svg.setAttribute('height', '10');
-      svg.setAttribute('viewBox', '0 0 16 16');
-      svg.classList.add('price-arrow');
-      svg.style.display = 'block';
-      
-      const paths = svgPath.split('M').filter(p => p.trim());
-      paths.forEach(pathData => {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M' + pathData);
-        path.setAttribute('stroke', arrowColor);
-        path.setAttribute('stroke-width', '2.88909');
-        path.setAttribute('fill', 'none');
-        svg.appendChild(path);
-      });
-      
-      arrowWrapper.appendChild(svg);
-      priceCell.appendChild(arrowWrapper);
-    }
-    row.appendChild(priceCell);
-    
-    // Have
+    // HAVE column
     const haveCell = document.createElement('td');
     haveCell.textContent = playerQuantity;
     row.appendChild(haveCell);
@@ -946,12 +908,44 @@ function renderStation() {
     
     const buyBtn = document.createElement('button');
     buyBtn.textContent = 'BUY';
-    buyBtn.disabled = playerState.credits < marketData.currentPrice || playerState.cargoUsed >= playerState.cargoMax;
+    buyBtn.disabled = playerState.credits < buyPrice || playerState.cargoUsed >= playerState.cargoMax;
     buyBtn.addEventListener('click', () => buyCommodity(commodity.id, 1));
     actionsCell.appendChild(buyBtn);
     
     const sellBtn = document.createElement('button');
-    sellBtn.textContent = 'SELL';
+    
+    // Calculate profit/loss for selling
+    if (playerQuantity > 0) {
+      // Get cargo data (handle both legacy number format and new object format)
+      const cargoData = typeof playerState.cargo[commodity.id] === 'number'
+        ? { quantity: playerState.cargo[commodity.id], avgBuyPrice: 0 }
+        : playerState.cargo[commodity.id];
+      
+      // Sell price already calculated above
+      
+      // Calculate profit/loss per unit
+      if (cargoData.avgBuyPrice && cargoData.avgBuyPrice > 0) {
+        const profitPerUnit = sellPrice - cargoData.avgBuyPrice;
+        
+        if (profitPerUnit > 0) {
+          sellBtn.textContent = `SELL +${profitPerUnit}cr`;
+          sellBtn.style.color = '#17D773'; // Green for profit
+        } else if (profitPerUnit < 0) {
+          sellBtn.textContent = `SELL ${profitPerUnit}cr`;
+          sellBtn.style.color = '#FF5A41'; // Red for loss
+        } else {
+          sellBtn.textContent = 'SELL ±0cr';
+          sellBtn.style.color = '#F2FFC5'; // Neutral
+        }
+      } else {
+        // No avg buy price (free loot), so it's all profit
+        sellBtn.textContent = `SELL +${sellPrice}cr`;
+        sellBtn.style.color = '#17D773'; // Green
+      }
+    } else {
+      sellBtn.textContent = 'SELL';
+    }
+    
     sellBtn.disabled = playerQuantity === 0;
     sellBtn.addEventListener('click', () => sellCommodity(commodity.id, 1));
     actionsCell.appendChild(sellBtn);
@@ -1179,7 +1173,11 @@ function renderStatus() {
   const damageMax = baseDamageMax + weaponBonus;
   document.getElementById('status-damage').textContent = `${damageMin}-${damageMax}`;
   
-  const cargoUsed = Object.values(playerState.cargo).reduce((sum, qty) => sum + qty, 0);
+  const cargoUsed = Object.values(playerState.cargo).reduce((sum, cargoData) => {
+    // Handle both legacy (number) and new (object) format
+    const quantity = typeof cargoData === 'number' ? cargoData : cargoData.quantity;
+    return sum + quantity;
+  }, 0);
   document.getElementById('status-cargo').textContent = cargoUsed;
   document.getElementById('status-cargo-max').textContent = playerState.cargoMax;
   document.getElementById('status-tick').textContent = gameState.tick;

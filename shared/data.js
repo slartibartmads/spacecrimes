@@ -602,6 +602,10 @@ const CONSTANTS = {
   TICK_EVENT_CHANCE: 0.025,                    // 2.5% chance per tick
   PRICE_DRIFT_RATE: 0.025,                     // Slower drift (was 0.05)
   
+  // Transaction spreads (bid-ask spread to prevent pump-and-dump)
+  BUY_MARKUP: 0.05,                            // Players pay 5% above market price when buying
+  SELL_MARKDOWN: 0.05,                         // Players receive 5% below market price when selling
+  
   PLAYER_BUY_PRICE_INCREASE: 0.04,
   PLAYER_SELL_PRICE_DECREASE: 0.04,
   ADJACENT_PRICE_CHANGE: 0.015,
