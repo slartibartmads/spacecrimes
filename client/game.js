@@ -890,7 +890,7 @@ function renderStation() {
     // BUY price column
     const buyPriceCell = document.createElement('td');
     buyPriceCell.textContent = `${buyPrice}cr`;
-    buyPriceCell.style.color = '#FF5A41'; // Red for buy (expensive)
+    buyPriceCell.style.color = '#17D773'; // Green for buy
     row.appendChild(buyPriceCell);
     
     // SELL price column
