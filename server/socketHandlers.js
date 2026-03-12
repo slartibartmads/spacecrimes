@@ -16,6 +16,8 @@ import {
   createPlayerState,
   buyCommodity,
   sellCommodity,
+  depositCredits,
+  withdrawCredits,
   travel,
   buyUpgrade,
   repairHull,
@@ -32,10 +34,196 @@ import {
   calculateTotalCargoValue,
   getPlayerAttackBonus,
   generateSpecificEvent,
-  getPlayerMaxCargo
+  getPlayerMaxCargo,
+  shouldTimeoutCombat
 } from './gameLogic.js';
 import { STATIONS } from '../shared/data.js';
 import { tryAdvanceTick, getTimeUntilNextTick, forceAdvanceTick } from './tickSystem.js';
+
+// Track active combat timeouts: Map<socketId, timeoutId>
+const combatTimeouts = new Map();
+
+/**
+ * Setup a combat timeout for PVP combat
+ * After 20 seconds, auto-resolve combat with both players attacking
+ */
+function setupCombatTimeout(attackerSocketId, defenderSocketId, io) {
+  const timeoutDuration = 20000; // 20 seconds
+  
+  // Clear any existing timeouts for these players
+  clearCombatTimeout(attackerSocketId);
+  clearCombatTimeout(defenderSocketId);
+  
+  console.log(`Setting up combat timeout for ${attackerSocketId} vs ${defenderSocketId}`);
+  
+  const timeoutId = setTimeout(() => {
+    console.log(`Combat timeout expired for ${attackerSocketId} vs ${defenderSocketId}`);
+    
+    // Get both players
+    const attackerPlayer = getPlayer(attackerSocketId);
+    const defenderPlayer = getPlayer(defenderSocketId);
+    
+    // Verify both players still exist and are in combat
+    if (!attackerPlayer || !defenderPlayer) {
+      console.log(`Timeout: One or both players no longer exist`);
+      return;
+    }
+    
+    if (!attackerPlayer.activeCombat || !defenderPlayer.activeCombat) {
+      console.log(`Timeout: One or both players no longer in combat`);
+      return;
+    }
+    
+    const attackerCombat = attackerPlayer.activeCombat;
+    
+    // Check if timeout already triggered (shouldn't happen, but safety check)
+    if (attackerCombat.timeoutTriggered) {
+      console.log(`Timeout: Already triggered for this round`);
+      return;
+    }
+    
+    // Mark timeout as triggered
+    attackerCombat.timeoutTriggered = true;
+    
+    // Auto-fill missing actions with 'attack'
+    if (!attackerCombat.attackerReady) {
+      attackerCombat.attackerAction = 'attack';
+      attackerCombat.attackerReady = true;
+    }
+    if (!attackerCombat.defenderReady) {
+      attackerCombat.defenderAction = 'attack';
+      attackerCombat.defenderReady = true;
+    }
+    
+    // Add timeout message to combat log
+    if (!attackerCombat.combatLog) {
+      attackerCombat.combatLog = [];
+    }
+    attackerCombat.combatLog.push('⏱️ Combat timeout - both players auto-attacking');
+    
+    // Resolve the round
+    const result = resolvePvpRound(
+      attackerPlayer,
+      defenderPlayer,
+      attackerCombat,
+      attackerCombat.attackerAction,
+      attackerCombat.defenderAction
+    );
+    
+    if (!result.success) {
+      console.error(`Timeout: Combat resolution failed`);
+      return;
+    }
+    
+    // Update both players' states
+    const newAttacker = result.attacker;
+    const newDefender = result.defender;
+    const newCombat = result.combatState;
+    
+    // Create defender's combat state (mirror of attacker's)
+    const defenderCombat = {
+      enemyType: newCombat.enemyType,
+      currentRound: newCombat.currentRound,
+      combatLog: newCombat.combatLog,
+      resolved: newCombat.resolved,
+      outcome: newCombat.outcome,
+      opponentSocketId: attackerSocketId,
+      opponentName: attackerPlayer.name,
+      opponentHull: newAttacker.hull,
+      opponentHullMax: attackerPlayer.hullMax,
+      opponentAttackBonus: newAttacker.upgrades.weapons ? 5 : 0,
+      roundStartTime: newCombat.roundStartTime,
+      timeoutTriggered: newCombat.timeoutTriggered
+    };
+    
+    newAttacker.activeCombat = newCombat;
+    newDefender.activeCombat = defenderCombat;
+    
+    // Handle combat resolution
+    if (!newCombat.resolved) {
+      // Combat continues - update states and set up new timeout
+      updatePlayer(attackerSocketId, newAttacker);
+      updatePlayer(defenderSocketId, newDefender);
+      
+      // Emit updated combat state to both players
+      io.to(attackerSocketId).emit('combatRoundResolved', {
+        playerState: newAttacker,
+        combatState: newCombat
+      });
+      
+      io.to(defenderSocketId).emit('combatRoundResolved', {
+        playerState: newDefender,
+        combatState: defenderCombat
+      });
+      
+      // Set up timeout for the next round
+      setupCombatTimeout(attackerSocketId, defenderSocketId, io);
+    } else {
+      // Combat ended
+      clearCombatTimeout(attackerSocketId);
+      clearCombatTimeout(defenderSocketId);
+      
+      if (newCombat.outcome === 'victory') {
+        const pvpResult = handlePvpVictory(newAttacker, newDefender, getServerState().markets);
+        updatePlayer(attackerSocketId, pvpResult.attacker);
+        updatePlayer(defenderSocketId, pvpResult.defender);
+        
+        io.to(attackerSocketId).emit('combatResolved', {
+          playerState: pvpResult.attacker,
+          combatState: newCombat
+        });
+        
+        io.to(defenderSocketId).emit('combatResolved', {
+          playerState: pvpResult.defender,
+          combatState: defenderCombat
+        });
+      } else if (newCombat.outcome === 'defeat') {
+        const pvpResult = handlePvpDefeat(newAttacker, newDefender, getServerState().markets);
+        updatePlayer(attackerSocketId, pvpResult.attacker);
+        updatePlayer(defenderSocketId, pvpResult.defender);
+        
+        io.to(attackerSocketId).emit('combatResolved', {
+          playerState: pvpResult.attacker,
+          combatState: newCombat
+        });
+        
+        io.to(defenderSocketId).emit('combatResolved', {
+          playerState: pvpResult.defender,
+          combatState: defenderCombat
+        });
+      } else if (newCombat.outcome === 'escaped') {
+        updatePlayer(attackerSocketId, newAttacker);
+        updatePlayer(defenderSocketId, newDefender);
+        
+        io.to(attackerSocketId).emit('combatResolved', {
+          playerState: newAttacker,
+          combatState: newCombat
+        });
+        
+        io.to(defenderSocketId).emit('combatResolved', {
+          playerState: newDefender,
+          combatState: defenderCombat
+        });
+      }
+    }
+  }, timeoutDuration);
+  
+  // Store the timeout IDs for both players
+  combatTimeouts.set(attackerSocketId, timeoutId);
+  combatTimeouts.set(defenderSocketId, timeoutId);
+}
+
+/**
+ * Clear combat timeout for a player
+ */
+function clearCombatTimeout(socketId) {
+  const timeoutId = combatTimeouts.get(socketId);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    combatTimeouts.delete(socketId);
+    console.log(`Cleared combat timeout for ${socketId}`);
+  }
+}
 
 /**
  * Set up all Socket.IO event handlers
@@ -70,6 +258,15 @@ export function setupSocketHandlers(io) {
     
     socket.on('repair', (data, callback) => {
       handleRepair(socket, data, callback, io);
+    });
+    
+    // Banking actions
+    socket.on('bank:deposit', (data, callback) => {
+      handleBankDeposit(socket, data, callback, io);
+    });
+    
+    socket.on('bank:withdraw', (data, callback) => {
+      handleBankWithdraw(socket, data, callback, io);
     });
     
     // Desperate work
@@ -478,6 +675,76 @@ function handleRepair(socket, data, callback, io) {
 }
 
 /**
+ * Handle bank deposit
+ */
+function handleBankDeposit(socket, data, callback, io) {
+  const { amount } = data;
+  const player = getPlayer(socket.id);
+  
+  if (!player) {
+    callback({ success: false, error: 'Player not found' });
+    return;
+  }
+  
+  const result = depositCredits(player, amount);
+  
+  if (!result.success) {
+    callback({ success: false, error: result.error });
+    return;
+  }
+  
+  updatePlayer(socket.id, result.playerState);
+  
+  io.emit('playerUpdate', { 
+    socketId: socket.id, 
+    player: getPublicPlayerInfo(socket.id) 
+  });
+  
+  addActivity(`${player.name} deposited ${amount} credits at The Mattress`);
+  
+  callback({ 
+    success: true, 
+    playerState: getPlayer(socket.id),
+    message: result.message
+  });
+}
+
+/**
+ * Handle bank withdrawal
+ */
+function handleBankWithdraw(socket, data, callback, io) {
+  const { amount } = data;
+  const player = getPlayer(socket.id);
+  
+  if (!player) {
+    callback({ success: false, error: 'Player not found' });
+    return;
+  }
+  
+  const result = withdrawCredits(player, amount);
+  
+  if (!result.success) {
+    callback({ success: false, error: result.error });
+    return;
+  }
+  
+  updatePlayer(socket.id, result.playerState);
+  
+  io.emit('playerUpdate', { 
+    socketId: socket.id, 
+    player: getPublicPlayerInfo(socket.id) 
+  });
+  
+  addActivity(`${player.name} withdrew ${amount} credits from The Mattress`);
+  
+  callback({ 
+    success: true, 
+    playerState: getPlayer(socket.id),
+    message: result.message
+  });
+}
+
+/**
  * Handle desperate work
  */
 function handleDesperateWork(socket, data, callback, io) {
@@ -592,6 +859,37 @@ function handleCombatAction(socket, data, callback, io) {
     updatedAttacker.activeCombat = attackerCombat;
     updatePlayer(attackerSocketId, updatedAttacker);
     
+    // Check for combat timeout
+    const hasTimedOut = shouldTimeoutCombat(attackerCombat);
+    
+    if (hasTimedOut && !attackerCombat.timeoutTriggered) {
+      console.log(`Combat timeout triggered! Auto-attacking for both players.`);
+      
+      // Mark timeout as triggered to prevent multiple timeout triggers
+      attackerCombat.timeoutTriggered = true;
+      
+      // Auto-fill missing actions with 'attack'
+      if (!attackerCombat.attackerReady) {
+        attackerCombat.attackerAction = 'attack';
+        attackerCombat.attackerReady = true;
+      }
+      if (!attackerCombat.defenderReady) {
+        attackerCombat.defenderAction = 'attack';
+        attackerCombat.defenderReady = true;
+      }
+      
+      // Add timeout message to combat log
+      if (!attackerCombat.combatLog) {
+        attackerCombat.combatLog = [];
+      }
+      attackerCombat.combatLog.push('⏱️ Combat timeout - both players auto-attacking');
+      
+      // Update the combat state with timeout changes
+      const timeoutUpdatedAttacker = getPlayer(attackerSocketId);
+      timeoutUpdatedAttacker.activeCombat = attackerCombat;
+      updatePlayer(attackerSocketId, timeoutUpdatedAttacker);
+    }
+    
     // If both players haven't chosen yet, just wait
     if (!attackerCombat.attackerReady || !attackerCombat.defenderReady) {
       console.log(`Waiting for other player...`);
@@ -612,6 +910,10 @@ function handleCombatAction(socket, data, callback, io) {
     }
     
     console.log(`Both players ready! Resolving round...`);
+    
+    // Clear combat timeout since both players acted before timeout
+    clearCombatTimeout(attackerSocketId);
+    clearCombatTimeout(defenderSocketId);
     
     // Both players ready - resolve the round!
     const result = resolvePvpRound(
@@ -644,7 +946,9 @@ function handleCombatAction(socket, data, callback, io) {
       opponentName: attackerPlayer.name,
       opponentHull: newAttacker.hull,
       opponentHullMax: attackerPlayer.hullMax,
-      opponentAttackBonus: newAttacker.upgrades.weapons ? 5 : 0
+      opponentAttackBonus: newAttacker.upgrades.weapons ? 5 : 0,
+      roundStartTime: newCombat.roundStartTime,
+      timeoutTriggered: newCombat.timeoutTriggered
     };
     
     newAttacker.activeCombat = newCombat;
@@ -834,6 +1138,9 @@ function handleCombatAction(socket, data, callback, io) {
       playerState: getPlayer(defenderSocketId),
       combatState: defenderCombat
     });
+    
+    // Set up timeout for the next round
+    setupCombatTimeout(attackerSocketId, defenderSocketId, io);
     
     callback({
       success: true,
@@ -1162,7 +1469,9 @@ function handleAttackPlayer(socket, data, callback, io) {
     pendingLoot: null,
     resolved: false,
     outcome: null,
-    isDefender: true // Flag to indicate they're being attacked
+    isDefender: true, // Flag to indicate they're being attacked
+    roundStartTime: combat.roundStartTime, // Add timeout timestamp
+    timeoutTriggered: combat.timeoutTriggered // Add timeout flag
     // NOTE: We do NOT copy attackerAction/defenderAction/attackerReady/defenderReady
     // because only the attacker's combat state should have these fields
   };
@@ -1172,6 +1481,9 @@ function handleAttackPlayer(socket, data, callback, io) {
   
   updatePlayer(socket.id, attacker);
   updatePlayer(targetSocketId, defender);
+  
+  // Set up combat timeout (20 seconds)
+  setupCombatTimeout(socket.id, targetSocketId, io);
   
   // Add activity
   const station = STATIONS.find(s => s.id === attacker.location);

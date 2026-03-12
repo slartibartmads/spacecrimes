@@ -13,6 +13,7 @@ let pendingTravel = null;
 let lastCombatLogLength = 0; // Track combat messages already shown
 let previousLocation = null; // Track previous location for animation
 let isAnimating = false; // Track if marker is currently animating
+let combatCountdownInterval = null; // Track combat countdown timer
 
 // === HELPER FUNCTIONS ===
 
@@ -393,7 +394,8 @@ function renderMap(animateTravel = false) {
     'vice_berth': 'img/icon_vice.svg',
     'disruptive_smelting': 'img/icon_disruptive.svg',
     'nuevo_eden': 'img/icon_nuevo_eden.svg',
-    'makinen_tanaka': 'img/icon_institute.svg'
+    'makinen_tanaka': 'img/icon_institute.svg',
+    'cosmobank': 'img/icon_bank.svg'
   };
   
   // Draw stations
@@ -404,7 +406,8 @@ function renderMap(animateTravel = false) {
     
     const isMajor = station.type === 'military' || station.type === 'trading' || 
                     station.type === 'entertainment' || station.type === 'industrial' || 
-                    station.type === 'agricultural' || station.type === 'research';
+                    station.type === 'agricultural' || station.type === 'research' ||
+                    station.type === 'bank';
     const size = isMajor ? 17 : 10; // Major: 34px diameter, Minor: 20px diameter
     
     // Render icon for major stations, hexagon for minor stations
@@ -639,14 +642,16 @@ function renderStation() {
     'vice_berth': 'img/icon_vice.svg',
     'disruptive_smelting': 'img/icon_disruptive.svg',
     'nuevo_eden': 'img/icon_nuevo_eden.svg',
-    'makinen_tanaka': 'img/icon_institute.svg'
+    'makinen_tanaka': 'img/icon_institute.svg',
+    'cosmobank': 'img/icon_bank.svg'
   };
   
   // Update station header icon
   const iconContainer = document.getElementById('station-icon-container');
   const isMajor = station.type === 'military' || station.type === 'trading' || 
                   station.type === 'entertainment' || station.type === 'industrial' || 
-                  station.type === 'agricultural' || station.type === 'research';
+                  station.type === 'agricultural' || station.type === 'research' ||
+                  station.type === 'bank';
   
   iconContainer.innerHTML = ''; // Clear existing content
   
@@ -707,6 +712,11 @@ function renderStation() {
   
   document.getElementById('station-name').textContent = station.name;
   document.getElementById('station-description').textContent = station.description;
+  
+  // Hide market and upgrades at The Mattress (bank only)
+  const isBank = station.id === 'cosmobank';
+  document.getElementById('market-section').style.display = isBank ? 'none' : 'block';
+  document.getElementById('upgrades-section').style.display = isBank ? 'none' : 'block';
   
   // Render commodities
   const commodityList = document.getElementById('commodity-list');
@@ -852,6 +862,53 @@ function renderStation() {
     desperateBtn.style.display = 'none';
   }
   
+  // Banking section (only at The Mattress)
+  const bankingSection = document.getElementById('banking-section');
+  if (station.id === 'cosmobank') {
+    bankingSection.style.display = 'block';
+    
+    // Update bank balance display
+    const bankBalance = playerState.bankAccount?.balance || 0;
+    document.getElementById('bank-balance').textContent = bankBalance;
+    
+    // Setup deposit button
+    const depositBtn = document.getElementById('deposit-btn');
+    depositBtn.onclick = () => {
+      const amount = parseInt(document.getElementById('deposit-amount').value);
+      if (amount && amount > 0) {
+        handleBankDeposit(amount);
+      }
+    };
+    
+    // Setup deposit all button
+    const depositAllBtn = document.getElementById('deposit-all-btn');
+    depositAllBtn.onclick = () => {
+      handleBankDeposit(playerState.credits);
+    };
+    
+    // Setup withdraw button
+    const withdrawBtn = document.getElementById('withdraw-btn');
+    withdrawBtn.onclick = () => {
+      const amount = parseInt(document.getElementById('withdraw-amount').value);
+      if (amount && amount > 0) {
+        handleBankWithdraw(amount);
+      }
+    };
+    
+    // Setup withdraw all button
+    const withdrawAllBtn = document.getElementById('withdraw-all-btn');
+    withdrawAllBtn.onclick = () => {
+      // Get fresh player state to ensure we have latest bank balance
+      const freshState = MP.getPlayerState();
+      const bankBalance = freshState?.bankAccount?.balance || 0;
+      if (bankBalance > 0) {
+        handleBankWithdraw(bankBalance);
+      }
+    };
+  } else {
+    bankingSection.style.display = 'none';
+  }
+  
   // Render upgrades
   renderUpgrades();
   
@@ -977,6 +1034,11 @@ function renderStatus() {
   
   document.getElementById('status-username').textContent = playerState.name;
   document.getElementById('status-credits').textContent = playerState.credits;
+  
+  // Always show bank balance
+  const bankBalance = playerState.bankAccount?.balance || 0;
+  document.getElementById('status-bank-balance').textContent = bankBalance;
+  
   document.getElementById('status-hull').textContent = playerState.hull;
   
   // Calculate damage (base 25-40 + weapon upgrades * 5)
@@ -1156,7 +1218,125 @@ async function handleDesperateWork() {
   }
 }
 
+async function handleBankDeposit(amount) {
+  try {
+    const result = await MP.depositCredits(amount);
+    addLog(result.message, 'success');
+    // Clear input field
+    document.getElementById('deposit-amount').value = '';
+    // Sync player state and update UI
+    const updatedState = MP.getPlayerState();
+    if (updatedState) {
+      playerState = updatedState;
+      renderStatus();
+      renderStation();
+    }
+  } catch (error) {
+    addLog(error.message, 'danger');
+  }
+}
+
+async function handleBankWithdraw(amount) {
+  try {
+    const result = await MP.withdrawCredits(amount);
+    addLog(result.message, 'success');
+    // Clear input field
+    document.getElementById('withdraw-amount').value = '';
+    // Sync player state and update UI
+    const updatedState = MP.getPlayerState();
+    if (updatedState) {
+      playerState = updatedState;
+      renderStatus();
+      renderStation();
+    }
+  } catch (error) {
+    addLog(error.message, 'danger');
+  }
+}
+
 // === MODALS (Simplified versions - full implementation needed) ===
+
+// === COMBAT COUNTDOWN FUNCTIONS ===
+
+/**
+ * Start countdown timer for PVP combat
+ */
+function startCombatCountdown(combat) {
+  // Only start countdown for PVP combat
+  if (combat.enemyType !== 'player') return;
+  
+  // Clear any existing countdown
+  stopCombatCountdown();
+  
+  // Calculate time remaining
+  const timeoutDuration = 20000; // 20 seconds
+  const roundStartTime = combat.roundStartTime;
+  const now = Date.now();
+  const elapsed = now - roundStartTime;
+  let timeRemaining = timeoutDuration - elapsed;
+  
+  // If already timed out, don't start countdown
+  if (timeRemaining <= 0 || combat.timeoutTriggered) {
+    return;
+  }
+  
+  // Update button immediately
+  updateActionButtonCountdowns(Math.ceil(timeRemaining / 1000));
+  
+  // Set up interval to update every second
+  combatCountdownInterval = setInterval(() => {
+    const now = Date.now();
+    const elapsed = now - roundStartTime;
+    timeRemaining = timeoutDuration - elapsed;
+    const secondsLeft = Math.ceil(timeRemaining / 1000);
+    
+    if (secondsLeft <= 0) {
+      stopCombatCountdown();
+      updateActionButtonCountdowns(0);
+    } else {
+      updateActionButtonCountdowns(secondsLeft);
+    }
+  }, 100); // Update every 100ms for smooth countdown
+}
+
+/**
+ * Update action button text with countdown
+ */
+function updateActionButtonCountdowns(secondsLeft) {
+  const attackBtn = document.getElementById('combat-attack');
+  if (!attackBtn) return;
+  
+  if (secondsLeft > 0) {
+    attackBtn.textContent = `ATTACK (${secondsLeft}s)`;
+    
+    // Add urgent class if less than 5 seconds
+    if (secondsLeft <= 5) {
+      attackBtn.classList.add('combat-urgent');
+    } else {
+      attackBtn.classList.remove('combat-urgent');
+    }
+  } else {
+    attackBtn.textContent = 'ATTACK';
+    attackBtn.classList.remove('combat-urgent');
+  }
+}
+
+/**
+ * Stop combat countdown timer
+ */
+function stopCombatCountdown() {
+  if (combatCountdownInterval) {
+    clearInterval(combatCountdownInterval);
+    combatCountdownInterval = null;
+  }
+  
+  // Reset attack button text
+  const attackBtn = document.getElementById('combat-attack');
+  if (attackBtn) {
+    attackBtn.textContent = 'ATTACK';
+    attackBtn.classList.remove('combat-urgent');
+  }
+}
 
 function showCombatModal(combat) {
   const isCop = combat.enemyType === 'cop';
@@ -1242,6 +1422,11 @@ function showCombatModal(combat) {
     surrenderBtn.onclick = () => handleCombatAction('surrender');
   } else {
     surrenderBtn.style.display = 'none';
+  }
+  
+  // Start countdown timer for PVP combat
+  if (isPvp) {
+    startCombatCountdown(combat);
   }
   
   // Show modal
@@ -1360,6 +1545,9 @@ function updateCombatDisplay(combat) {
   
   // Check if combat is resolved
   if (combat.resolved) {
+    // Stop countdown when combat ends
+    stopCombatCountdown();
+    
     combatActions.style.display = 'none';
     
     // PVP victory - special handling
@@ -1401,6 +1589,9 @@ function updateCombatDisplay(combat) {
 }
 
 function closeCombatModal() {
+  // Stop any active countdown
+  stopCombatCountdown();
+  
   document.getElementById('combat-modal').style.display = 'none';
   document.getElementById('modal-overlay').style.display = 'none';
   
@@ -1505,6 +1696,11 @@ function handleCombatRoundResolved(data) {
   // Re-enable combat actions if combat isn't resolved
   if (!data.combatState.resolved) {
     document.getElementById('combat-actions').style.display = 'flex';
+    
+    // Restart countdown timer for PVP combat (new round)
+    if (data.combatState.enemyType === 'player') {
+      startCombatCountdown(data.combatState);
+    }
   }
 }
 

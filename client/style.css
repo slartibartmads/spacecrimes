@@ -221,6 +221,61 @@ button.small {
   font-size: 10px;
 }
 
+/* === COMBAT URGENT STYLING === */
+
+button.combat-urgent {
+  border-color: var(--danger-red);
+  color: var(--danger-red);
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+button.combat-urgent:hover:not(:disabled) {
+  background: var(--danger-red);
+  color: var(--bg-black);
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 90, 65, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 90, 65, 0.7);
+  }
+}
+
+/* === INPUTS === */
+
+.bank-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 14px;
+  background: var(--bg-black);
+  color: var(--text-green);
+  border: 1px solid var(--border-green);
+  outline: none;
+}
+
+.bank-input:focus {
+  border-color: var(--text-green);
+  box-shadow: 0 0 5px rgba(23, 215, 115, 0.3);
+}
+
+.bank-input::placeholder {
+  color: var(--text-green-dark);
+}
+
+/* Remove spinner arrows from number inputs */
+.bank-input::-webkit-outer-spin-button,
+.bank-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bank-input[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* === SVG MAP === */
 
 #map-svg {
@@ -552,16 +607,17 @@ button.small {
 }
 
 #combat-loot {
-  margin: 20px;
+  margin: 15px;
   padding: 15px;
-  background: rgba(255, 255, 0, 0.1);
-  border: 1px solid var(--warning-yellow);
+  background: var(--bg-black);
+  border: 1px solid var(--border-green);
+  text-align: center;
 }
 
 #loot-description {
-  color: var(--warning-yellow);
+  color: var(--text-green);
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 /* Combat Action Buttons */
@@ -790,16 +846,17 @@ button.small {
 }
 
 #combat-loot {
-  margin: 15px 0;
+  margin: 15px;
   padding: 15px;
-  background: rgba(255, 255, 0, 0.1);
-  border: 1px solid var(--warning-yellow);
+  background: var(--bg-black);
+  border: 1px solid var(--border-green);
+  text-align: center;
 }
 
 #loot-description {
-  color: var(--warning-yellow);
+  color: var(--text-green);
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 /* === MULTIPLAYER PANEL === */

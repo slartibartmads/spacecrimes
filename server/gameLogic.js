@@ -12,6 +12,7 @@ import {
   PIRATE_NAMES,
   COMBAT_FLAVOR,
   DESPERATE_WORK_MESSAGES,
+  BANK_CONFIG,
   CONSTANTS
 } from '../shared/data.js';
 
@@ -105,7 +106,12 @@ export function createPlayerState(username) {
     lastAction: null,
     connected: true,
     connectedAt: Date.now(),
-    lastSeen: Date.now()
+    lastSeen: Date.now(),
+    bankAccount: {
+      balance: 0,
+      totalDeposited: 0,
+      totalWithdrawn: 0
+    }
   };
 }
 
@@ -914,6 +920,77 @@ export function sellCommodity(player, markets, commodityId, quantity) {
   };
 }
 
+// === BANKING ===
+
+export function depositCredits(player, amount) {
+  const newPlayer = deepClone(player);
+  
+  // Ensure bankAccount exists (for existing players before feature was added)
+  if (!newPlayer.bankAccount) {
+    newPlayer.bankAccount = {
+      balance: 0,
+      totalDeposited: 0,
+      totalWithdrawn: 0
+    };
+  }
+  
+  // Validation: must be at The Mattress
+  if (newPlayer.location !== 'cosmobank') {
+    return { success: false, error: 'Banking only available at The Mattress' };
+  }
+  
+  // Validate amount
+  if (!amount || amount < BANK_CONFIG.MINIMUM_DEPOSIT) {
+    return { success: false, error: `Minimum deposit: ${BANK_CONFIG.MINIMUM_DEPOSIT} credits` };
+  }
+  
+  if (amount > newPlayer.credits) {
+    return { success: false, error: 'Insufficient credits' };
+  }
+  
+  // Process deposit
+  newPlayer.credits -= amount;
+  newPlayer.bankAccount.balance += amount;
+  newPlayer.bankAccount.totalDeposited += amount;
+  
+  console.log(`[BANK] ${player.name} deposited ${amount}cr. New balance: ${newPlayer.bankAccount.balance}cr`);
+  
+  return {
+    success: true,
+    playerState: newPlayer,
+    message: `Deposited ${amount} credits. Bank balance: ${newPlayer.bankAccount.balance}`
+  };
+}
+
+export function withdrawCredits(player, amount) {
+  const newPlayer = deepClone(player);
+  
+  // Validation: must be at The Mattress
+  if (newPlayer.location !== 'cosmobank') {
+    return { success: false, error: 'Banking only available at The Mattress' };
+  }
+  
+  // Validate amount
+  if (!amount || amount < BANK_CONFIG.MINIMUM_WITHDRAWAL) {
+    return { success: false, error: `Minimum withdrawal: ${BANK_CONFIG.MINIMUM_WITHDRAWAL} credits` };
+  }
+  
+  if (amount > newPlayer.bankAccount.balance) {
+    return { success: false, error: 'Insufficient bank balance' };
+  }
+  
+  // Process withdrawal
+  newPlayer.credits += amount;
+  newPlayer.bankAccount.balance -= amount;
+  newPlayer.bankAccount.totalWithdrawn += amount;
+  
+  return {
+    success: true,
+    playerState: newPlayer,
+    message: `Withdrew ${amount} credits. Bank balance: ${newPlayer.bankAccount.balance}`
+  };
+}
+
 // === TRAVEL ===
 
 export function travel(player, destinationId, markets = {}, activeEvents = []) {
@@ -1160,8 +1237,20 @@ export function initiatePvpCombat(attacker, defender) {
     attackerAction: null,
     defenderAction: null,
     attackerReady: false,
-    defenderReady: false
+    defenderReady: false,
+    roundStartTime: Date.now(),  // Track when this round started
+    timeoutTriggered: false       // Track if timeout was triggered
   };
+}
+
+/**
+ * Check if combat round should timeout (20 seconds elapsed)
+ */
+export function shouldTimeoutCombat(combatState) {
+  const TIMEOUT_MS = 20000; // 20 seconds
+  if (!combatState || !combatState.roundStartTime) return false;
+  const elapsed = Date.now() - combatState.roundStartTime;
+  return elapsed >= TIMEOUT_MS;
 }
 
 export function resolveCombatRound(player, combatState, action) {
@@ -1348,11 +1437,15 @@ export function resolveCombatRound(player, combatState, action) {
       }
 
       const salvageCommodity = randomChoice(eligibleCommodities);
-      newCombat.pendingLoot = {
-        commodityId: salvageCommodity.id,
-        commodityName: salvageCommodity.name,
-        amount: salvageAmount
-      };
+      
+      // Only create loot if a commodity was found (stations may have no commodities)
+      if (salvageCommodity) {
+        newCombat.pendingLoot = {
+          commodityId: salvageCommodity.id,
+          commodityName: salvageCommodity.name,
+          amount: salvageAmount
+        };
+      }
       
       newCombat.combatLog.push(`\nVICTORY! Earned ${creditReward}cr.`);
       if (newCombat.pendingLoot) {
@@ -1545,6 +1638,9 @@ export function resolvePvpRound(attacker, defender, attackerCombat, attackerActi
     newCombat.defenderAction = null;
     newCombat.attackerReady = false;
     newCombat.defenderReady = false;
+    // Reset timeout tracking for new round
+    newCombat.roundStartTime = Date.now();
+    newCombat.timeoutTriggered = false;
   }
   
   return {
@@ -1753,6 +1849,16 @@ export function respawn(player) {
     newPlayer.reputation.currentBounty = 0;
   }
   
+  // Preserve bank account balance (death protection)
+  // Bank account is NOT reset on respawn - banked credits are safe
+  if (!newPlayer.bankAccount) {
+    newPlayer.bankAccount = {
+      balance: 0,
+      totalDeposited: 0,
+      totalWithdrawn: 0
+    };
+  }
+  
   return { 
     success: true,
     playerState: newPlayer, 
@@ -1902,6 +2008,11 @@ export function getInspectionChance(player) {
 export function calculateNetWorth(player, markets) {
   let worth = player.credits;
   
+  // Add bank balance
+  if (player.bankAccount && player.bankAccount.balance) {
+    worth += player.bankAccount.balance;
+  }
+  
   // Add cargo value
   const currentStation = STATIONS.find(s => s.id === player.location);
   if (currentStation && markets && markets[currentStation.id]) {
@@ -1949,8 +2060,12 @@ export function handlePvpVictory(attacker, defender, markets) {
       stolenCargo[commodityId] = stolenAmount;
       // Calculate value for activity log
       const currentStation = STATIONS.find(s => s.id === defender.location);
-      const price = markets[currentStation.id][commodityId].currentPrice;
-      stolenCargoValue += stolenAmount * price;
+      const stationMarket = markets[currentStation.id];
+      const commodityMarket = stationMarket ? stationMarket[commodityId] : null;
+      if (commodityMarket) {
+        const price = commodityMarket.currentPrice;
+        stolenCargoValue += stolenAmount * price;
+      }
     }
   });
   
