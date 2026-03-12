@@ -30,7 +30,7 @@
         <span>CREDITS: <span id="status-credits">500</span>cr</span>
         <span>SHIELDS: <span id="status-hull">100</span>%</span>
         <span>FIREPOWER: <span id="status-damage">10</span></span>
-        <span>CARGO: <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span></span>
+        <span>CARGO: <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span> <button id="inventory-btn" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;">INV</button></span>
         <span id="status-bounty" style="display: none; color: #FF5A41;">BOUNTY: <span id="status-bounty-amount">0</span>cr</span>
       </div>
       <div id="status-right">
@@ -231,6 +231,27 @@
         </div>
       </div>
       <button id="event-acknowledge" class="event-button">Acknowledge!</button>
+    </div>
+  </div>
+
+  <!-- INVENTORY MODAL -->
+  <div id="inventory-modal" class="modal" style="display: none;">
+    <h2>CARGO INVENTORY</h2>
+    <table style="width: 100%; margin-top: 15px;">
+      <thead>
+        <tr>
+          <th>COMMODITY</th>
+          <th>QTY</th>
+          <th>AVG COST</th>
+          <th>ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="inventory-list">
+        <!-- Populated by JS -->
+      </tbody>
+    </table>
+    <div class="modal-buttons">
+      <button id="inventory-close">CLOSE</button>
     </div>
   </div>
 

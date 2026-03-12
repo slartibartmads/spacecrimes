@@ -248,6 +248,27 @@ export function sellCommodity(commodity, quantity) {
 }
 
 /**
+ * Jettison cargo
+ */
+export function jettisonCargo(commodity, quantity) {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('jettison', { commodity, quantity }, (response) => {
+      if (response && response.success) {
+        playerState = response.playerState;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Unknown error'));
+      }
+    });
+  });
+}
+
+/**
  * Travel to destination
  */
 export function travel(destination) {

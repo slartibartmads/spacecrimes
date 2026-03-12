@@ -690,6 +690,12 @@ const CONSTANTS = {
   TOLL_CARGO_PERCENTAGE: 0.05  // 5% of cargo value added to base toll
 };
 
+// Banking configuration
+export const BANK_CONFIG = {
+  MINIMUM_DEPOSIT: 1,
+  MINIMUM_WITHDRAWAL: 1
+};
+
 // Export for ES modules (Node.js server)
 export {
   STATIONS,

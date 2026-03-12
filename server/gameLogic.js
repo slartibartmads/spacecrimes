@@ -920,6 +920,52 @@ export function sellCommodity(player, markets, commodityId, quantity) {
   };
 }
 
+// === JETTISON CARGO ===
+
+export function jettisonCargo(player, commodityId, quantity) {
+  const newPlayer = deepClone(player);
+  
+  // Validate commodity exists
+  const commodity = COMMODITIES.find(c => c.id === commodityId);
+  if (!commodity) {
+    return { success: false, error: 'Invalid commodity' };
+  }
+  
+  // Check if player has this cargo
+  if (!newPlayer.cargo[commodityId]) {
+    return { success: false, error: 'You do not have this cargo' };
+  }
+  
+  // Handle both legacy (number) and new (object) format
+  const cargoData = typeof newPlayer.cargo[commodityId] === 'number'
+    ? { quantity: newPlayer.cargo[commodityId], avgBuyPrice: 0 }
+    : newPlayer.cargo[commodityId];
+  
+  // Validate quantity
+  if (quantity <= 0 || quantity > cargoData.quantity) {
+    return { success: false, error: 'Invalid quantity' };
+  }
+  
+  // Remove the cargo
+  if (quantity >= cargoData.quantity) {
+    // Jettison all
+    delete newPlayer.cargo[commodityId];
+  } else {
+    // Jettison partial
+    if (typeof newPlayer.cargo[commodityId] === 'object') {
+      newPlayer.cargo[commodityId].quantity -= quantity;
+    } else {
+      // Legacy format
+      newPlayer.cargo[commodityId] -= quantity;
+    }
+  }
+  
+  return {
+    success: true,
+    playerState: newPlayer
+  };
+}
+
 // === BANKING ===
 
 export function depositCredits(player, amount) {

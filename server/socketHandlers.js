@@ -16,6 +16,7 @@ import {
   createPlayerState,
   buyCommodity,
   sellCommodity,
+  jettisonCargo,
   depositCredits,
   withdrawCredits,
   travel,
@@ -246,6 +247,10 @@ export function setupSocketHandlers(io) {
       handleSell(socket, data, callback, io);
     });
     
+    socket.on('jettison', (data, callback) => {
+      handleJettison(socket, data, callback, io);
+    });
+    
     // Travel action
     socket.on('travel', (data, callback) => {
       handleTravel(socket, data, callback, io);
@@ -463,6 +468,40 @@ function handleSell(socket, data, callback, io) {
   
   // Try to advance tick
   tryAdvanceTick();
+}
+
+/**
+ * Handle jettison cargo
+ */
+function handleJettison(socket, data, callback, io) {
+  const { commodity, quantity } = data;
+  const player = getPlayer(socket.id);
+  
+  if (!player) {
+    callback({ success: false, error: 'Player not found' });
+    return;
+  }
+  
+  const result = jettisonCargo(player, commodity, quantity);
+  
+  if (!result.success) {
+    callback({ success: false, error: result.error });
+    return;
+  }
+  
+  // Update player
+  updatePlayer(socket.id, result.playerState);
+  
+  // Broadcast player update
+  io.emit('playerUpdate', { 
+    socketId: socket.id, 
+    player: getPublicPlayerInfo(socket.id) 
+  });
+  
+  callback({ 
+    success: true, 
+    playerState: getPlayer(socket.id)
+  });
 }
 
 /**

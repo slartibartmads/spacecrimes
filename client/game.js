@@ -93,7 +93,120 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize debug panel
   initializeDebugPanel();
+  
+  // Set up inventory button
+  const inventoryBtn = document.getElementById('inventory-btn');
+  if (inventoryBtn) {
+    inventoryBtn.addEventListener('click', () => showInventoryModal());
+  }
+  
+  // Set up inventory modal close button
+  const inventoryClose = document.getElementById('inventory-close');
+  if (inventoryClose) {
+    inventoryClose.addEventListener('click', () => closeInventoryModal());
+  }
 });
+
+// === INVENTORY MODAL ===
+
+function showInventoryModal() {
+  const modal = document.getElementById('inventory-modal');
+  const overlay = document.getElementById('modal-overlay');
+  const inventoryList = document.getElementById('inventory-list');
+  
+  if (!modal || !overlay || !inventoryList) return;
+  
+  // Clear existing content
+  inventoryList.innerHTML = '';
+  
+  // Get cargo
+  const cargo = playerState.cargo || {};
+  const cargoKeys = Object.keys(cargo);
+  
+  if (cargoKeys.length === 0) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.textContent = 'No cargo';
+    cell.style.textAlign = 'center';
+    cell.style.padding = '20px';
+    row.appendChild(cell);
+    inventoryList.appendChild(row);
+  } else {
+    cargoKeys.forEach(commodityId => {
+      const commodity = COMMODITIES.find(c => c.id === commodityId);
+      if (!commodity) return;
+      
+      // Handle both legacy (number) and new (object) format
+      const cargoData = typeof cargo[commodityId] === 'number'
+        ? { quantity: cargo[commodityId], avgBuyPrice: 0 }
+        : cargo[commodityId];
+      
+      const row = document.createElement('tr');
+      
+      // Commodity name
+      const nameCell = document.createElement('td');
+      nameCell.textContent = commodity.name;
+      row.appendChild(nameCell);
+      
+      // Quantity
+      const qtyCell = document.createElement('td');
+      qtyCell.textContent = cargoData.quantity;
+      row.appendChild(qtyCell);
+      
+      // Average cost
+      const avgCostCell = document.createElement('td');
+      avgCostCell.textContent = cargoData.avgBuyPrice > 0 ? `${cargoData.avgBuyPrice}cr` : '-';
+      row.appendChild(avgCostCell);
+      
+      // Jettison button
+      const actionCell = document.createElement('td');
+      const jettisonBtn = document.createElement('button');
+      jettisonBtn.textContent = 'JETTISON';
+      jettisonBtn.style.background = '#FF5A41';
+      jettisonBtn.style.padding = '2px 8px';
+      jettisonBtn.style.fontSize = '11px';
+      jettisonBtn.addEventListener('click', () => handleJettison(commodityId, cargoData.quantity));
+      actionCell.appendChild(jettisonBtn);
+      row.appendChild(actionCell);
+      
+      inventoryList.appendChild(row);
+    });
+  }
+  
+  // Show modal
+  overlay.style.display = 'block';
+  modal.style.display = 'block';
+}
+
+function closeInventoryModal() {
+  const modal = document.getElementById('inventory-modal');
+  const overlay = document.getElementById('modal-overlay');
+  
+  if (modal) modal.style.display = 'none';
+  if (overlay) overlay.style.display = 'none';
+}
+
+async function handleJettison(commodityId, quantity) {
+  const commodity = COMMODITIES.find(c => c.id === commodityId);
+  if (!commodity) return;
+  
+  const confirmed = confirm(`Jettison ${quantity} ${commodity.name}? You will not be refunded.`);
+  if (!confirmed) return;
+  
+  try {
+    const result = await MP.jettisonCargo(commodityId, quantity);
+    playerState = result.playerState;
+    
+    // Refresh the inventory modal
+    showInventoryModal();
+    
+    // Update status bar
+    renderStatus();
+  } catch (error) {
+    alert(error.message || 'Failed to jettison cargo');
+  }
+}
 
 // === LOGIN ===
 
@@ -714,9 +827,9 @@ function renderStation() {
   document.getElementById('station-description').textContent = station.description;
   
   // Hide market and upgrades at The Mattress (bank only)
-  const isBank = station.id === 'cosmobank';
-  document.getElementById('market-section').style.display = isBank ? 'none' : 'block';
-  document.getElementById('upgrades-section').style.display = isBank ? 'none' : 'block';
+  // const isBank = station.id === 'cosmobank';
+  // document.getElementById('market-section').style.display = isBank ? 'none' : 'block';
+  // document.getElementById('upgrades-section').style.display = isBank ? 'none' : 'block';
   
   // Render commodities
   const commodityList = document.getElementById('commodity-list');
@@ -864,49 +977,62 @@ function renderStation() {
   
   // Banking section (only at The Mattress)
   const bankingSection = document.getElementById('banking-section');
-  if (station.id === 'cosmobank') {
-    bankingSection.style.display = 'block';
-    
-    // Update bank balance display
-    const bankBalance = playerState.bankAccount?.balance || 0;
-    document.getElementById('bank-balance').textContent = bankBalance;
-    
-    // Setup deposit button
-    const depositBtn = document.getElementById('deposit-btn');
-    depositBtn.onclick = () => {
-      const amount = parseInt(document.getElementById('deposit-amount').value);
-      if (amount && amount > 0) {
-        handleBankDeposit(amount);
+  if (bankingSection) {
+    if (station.id === 'cosmobank') {
+      bankingSection.style.display = 'block';
+      
+      // Update bank balance display
+      const bankBalance = playerState.bankAccount?.balance || 0;
+      const bankBalanceEl = document.getElementById('bank-balance');
+      if (bankBalanceEl) {
+        bankBalanceEl.textContent = bankBalance;
       }
-    };
-    
-    // Setup deposit all button
-    const depositAllBtn = document.getElementById('deposit-all-btn');
-    depositAllBtn.onclick = () => {
-      handleBankDeposit(playerState.credits);
-    };
-    
-    // Setup withdraw button
-    const withdrawBtn = document.getElementById('withdraw-btn');
-    withdrawBtn.onclick = () => {
-      const amount = parseInt(document.getElementById('withdraw-amount').value);
-      if (amount && amount > 0) {
-        handleBankWithdraw(amount);
+      
+      // Setup deposit button
+      const depositBtn = document.getElementById('deposit-btn');
+      if (depositBtn) {
+        depositBtn.onclick = () => {
+          const amount = parseInt(document.getElementById('deposit-amount').value);
+          if (amount && amount > 0) {
+            handleBankDeposit(amount);
+          }
+        };
       }
-    };
-    
-    // Setup withdraw all button
-    const withdrawAllBtn = document.getElementById('withdraw-all-btn');
-    withdrawAllBtn.onclick = () => {
-      // Get fresh player state to ensure we have latest bank balance
-      const freshState = MP.getPlayerState();
-      const bankBalance = freshState?.bankAccount?.balance || 0;
-      if (bankBalance > 0) {
-        handleBankWithdraw(bankBalance);
+      
+      // Setup deposit all button
+      const depositAllBtn = document.getElementById('deposit-all-btn');
+      if (depositAllBtn) {
+        depositAllBtn.onclick = () => {
+          handleBankDeposit(playerState.credits);
+        };
       }
-    };
-  } else {
-    bankingSection.style.display = 'none';
+      
+      // Setup withdraw button
+      const withdrawBtn = document.getElementById('withdraw-btn');
+      if (withdrawBtn) {
+        withdrawBtn.onclick = () => {
+          const amount = parseInt(document.getElementById('withdraw-amount').value);
+          if (amount && amount > 0) {
+            handleBankWithdraw(amount);
+          }
+        };
+      }
+      
+      // Setup withdraw all button
+      const withdrawAllBtn = document.getElementById('withdraw-all-btn');
+      if (withdrawAllBtn) {
+        withdrawAllBtn.onclick = () => {
+          // Get fresh player state to ensure we have latest bank balance
+          const freshState = MP.getPlayerState();
+          const bankBalance = freshState?.bankAccount?.balance || 0;
+          if (bankBalance > 0) {
+            handleBankWithdraw(bankBalance);
+          }
+        };
+      }
+    } else {
+      bankingSection.style.display = 'none';
+    }
   }
   
   // Render upgrades
@@ -1035,9 +1161,12 @@ function renderStatus() {
   document.getElementById('status-username').textContent = playerState.name;
   document.getElementById('status-credits').textContent = playerState.credits;
   
-  // Always show bank balance
+  // Always show bank balance (if element exists)
   const bankBalance = playerState.bankAccount?.balance || 0;
-  document.getElementById('status-bank-balance').textContent = bankBalance;
+  const bankBalanceEl = document.getElementById('status-bank-balance');
+  if (bankBalanceEl) {
+    bankBalanceEl.textContent = bankBalance;
+  }
   
   document.getElementById('status-hull').textContent = playerState.hull;
   
