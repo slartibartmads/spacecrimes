@@ -166,6 +166,7 @@ function handlePlayerUpdate(player) {
   const locationChanged = playerState && playerState.location !== player.location;
   if (locationChanged) {
     previousLocation = playerState.location;
+    console.log('Location changed from', previousLocation, 'to', player.location);
   }
   
   playerState = player;
@@ -332,6 +333,8 @@ function handleDeath() {
 function renderMap(animateTravel = false) {
   if (!playerState) return; // Safety check
   
+  console.log('renderMap called, animateTravel:', animateTravel, 'previousLocation:', previousLocation, 'isAnimating:', isAnimating);
+  
   const routesLayer = document.getElementById('routes-layer');
   const stationsLayer = document.getElementById('stations-layer');
   const playersLayer = document.getElementById('players-layer');
@@ -466,6 +469,8 @@ function renderMap(animateTravel = false) {
       if (animateTravel && previousLocation && !isAnimating) {
         const fromStation = STATIONS.find(s => s.id === previousLocation);
         const toStation = station;
+        
+        console.log('Attempting animation from', fromStation?.name, 'to', toStation?.name);
         
         if (fromStation) {
           isAnimating = true;
