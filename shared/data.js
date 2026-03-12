@@ -383,7 +383,7 @@ const UPGRADES = [
   {
     id: "cargo",
     name: "Cargo",
-    baseCost: 500,
+    baseCost: 250,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 10,
@@ -393,7 +393,7 @@ const UPGRADES = [
   {
     id: "shields",
     name: "Shields",
-    baseCost: 600,
+    baseCost: 300,
     multiplier: 2,
     maxTier: 5,
     effectPerTier: 20,
@@ -403,11 +403,11 @@ const UPGRADES = [
   {
     id: "weapon",
     name: "Weapons",
-    baseCost: 800,
+    baseCost: 400,
     multiplier: 2,
     maxTier: 5,
-    effectPerTier: 5,
-    description: "+5 Firepower",
+    effectPerTier: 15,
+    description: "+15 Firepower",
     effectType: 'weapon'
   }
 ];
