@@ -11,6 +11,8 @@ let allPlayers = []; // Other players in the system
 let activities = [];
 let pendingTravel = null;
 let lastCombatLogLength = 0; // Track combat messages already shown
+let previousLocation = null; // Track previous location for animation
+let isAnimating = false; // Track if marker is currently animating
 
 // === HELPER FUNCTIONS ===
 
@@ -160,10 +162,16 @@ function handleMarketUpdate(markets) {
 }
 
 function handlePlayerUpdate(player) {
+  // Track location change for animation
+  const locationChanged = playerState && playerState.location !== player.location;
+  if (locationChanged) {
+    previousLocation = playerState.location;
+  }
+  
   playerState = player;
   renderStatus();
   renderStation();
-  renderMap(); // Update map to refresh toll labels based on new cargo
+  renderMap(locationChanged); // Pass flag to trigger animation
   renderPlayersHere(); // Update players here when our location changes
 }
 
@@ -321,7 +329,7 @@ function handleDeath() {
 
 // === RENDERING ===
 
-function renderMap() {
+function renderMap(animateTravel = false) {
   if (!playerState) return; // Safety check
   
   const routesLayer = document.getElementById('routes-layer');
@@ -452,9 +460,57 @@ function renderMap() {
       marker.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_marker.svg');
       marker.setAttribute('width', '32');
       marker.setAttribute('height', '32');
-      // Position marker centered on station position
-      marker.setAttribute('x', station.position.x - 16);
-      marker.setAttribute('y', station.position.y - 16);
+      marker.setAttribute('id', 'player-marker'); // Add ID for animation
+      
+      // If we should animate and we have a previous location, animate the transition
+      if (animateTravel && previousLocation && !isAnimating) {
+        const fromStation = STATIONS.find(s => s.id === previousLocation);
+        const toStation = station;
+        
+        if (fromStation) {
+          isAnimating = true;
+          
+          // Start at previous position
+          marker.setAttribute('x', fromStation.position.x - 16);
+          marker.setAttribute('y', fromStation.position.y - 16);
+          
+          // Create animation element
+          const animX = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+          animX.setAttribute('attributeName', 'x');
+          animX.setAttribute('from', fromStation.position.x - 16);
+          animX.setAttribute('to', toStation.position.x - 16);
+          animX.setAttribute('dur', '0.8s');
+          animX.setAttribute('fill', 'freeze');
+          
+          const animY = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+          animY.setAttribute('attributeName', 'y');
+          animY.setAttribute('from', fromStation.position.y - 16);
+          animY.setAttribute('to', toStation.position.y - 16);
+          animY.setAttribute('dur', '0.8s');
+          animY.setAttribute('fill', 'freeze');
+          
+          // Reset animation flag when complete
+          animX.addEventListener('endEvent', () => {
+            isAnimating = false;
+            previousLocation = null;
+          });
+          
+          marker.appendChild(animX);
+          marker.appendChild(animY);
+          
+          // Start the animation
+          animX.beginElement();
+          animY.beginElement();
+        } else {
+          // No previous station found, just position normally
+          marker.setAttribute('x', station.position.x - 16);
+          marker.setAttribute('y', station.position.y - 16);
+        }
+      } else {
+        // No animation needed, position normally
+        marker.setAttribute('x', station.position.x - 16);
+        marker.setAttribute('y', station.position.y - 16);
+      }
       
       group.appendChild(marker);
     }
