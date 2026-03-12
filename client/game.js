@@ -339,45 +339,52 @@ function renderMap(animateTravel = false) {
   const stationsLayer = document.getElementById('stations-layer');
   const playersLayer = document.getElementById('players-layer');
   
-  routesLayer.innerHTML = '';
-  stationsLayer.innerHTML = '';
-  playersLayer.innerHTML = '';
+  // If we're currently animating, don't re-render - just update other players
+  if (isAnimating && !animateTravel) {
+    console.log('Skipping full re-render during animation, only updating other players');
+    playersLayer.innerHTML = '';
+    // Skip to rendering other players only
+  } else {
+    // Full re-render
+    routesLayer.innerHTML = '';
+    stationsLayer.innerHTML = '';
+    playersLayer.innerHTML = '';
   
-  // Draw routes
-  ROUTES.forEach(route => {
-    const from = STATIONS.find(s => s.id === route.from);
-    const to = STATIONS.find(s => s.id === route.to);
-    const isToll = route.tollFee && route.tollFee > 0;
-    
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', from.position.x);
-    line.setAttribute('y1', from.position.y);
-    line.setAttribute('x2', to.position.x);
-    line.setAttribute('y2', to.position.y);
-    line.setAttribute('stroke', isToll ? '#FF5A41' : '#17D773');
-    line.setAttribute('stroke-width', '2');
-    line.setAttribute('opacity', isToll ? '0.25' : '0.3');
-    routesLayer.appendChild(line);
-    
-    // Add toll fee label
-    if (isToll) {
-      const midX = (from.position.x + to.position.x) / 2;
-      const midY = (from.position.y + to.position.y) / 2;
+    // Draw routes
+    ROUTES.forEach(route => {
+      const from = STATIONS.find(s => s.id === route.from);
+      const to = STATIONS.find(s => s.id === route.to);
+      const isToll = route.tollFee && route.tollFee > 0;
       
-      const actualToll = calculateTollFee(route);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', from.position.x);
+      line.setAttribute('y1', from.position.y);
+      line.setAttribute('x2', to.position.x);
+      line.setAttribute('y2', to.position.y);
+      line.setAttribute('stroke', isToll ? '#FF5A41' : '#17D773');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('opacity', isToll ? '0.25' : '0.3');
+      routesLayer.appendChild(line);
       
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      label.setAttribute('x', midX);
-      label.setAttribute('y', midY);
-      label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('fill', '#FF5A41');
-      label.setAttribute('font-size', '10');
-      label.setAttribute('font-weight', '900');
-      label.setAttribute('font-family', 'Source Code Pro, monospace');
-      label.textContent = `${actualToll}cr`;
-      routesLayer.appendChild(label);
-    }
-  });
+      // Add toll fee label
+      if (isToll) {
+        const midX = (from.position.x + to.position.x) / 2;
+        const midY = (from.position.y + to.position.y) / 2;
+        
+        const actualToll = calculateTollFee(route);
+        
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', midX);
+        label.setAttribute('y', midY);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('fill', '#FF5A41');
+        label.setAttribute('font-size', '10');
+        label.setAttribute('font-weight', '900');
+        label.setAttribute('font-family', 'Source Code Pro, monospace');
+        label.textContent = `${actualToll}cr`;
+        routesLayer.appendChild(label);
+      }
+    });
   
   // Station icon mapping
   const stationIcons = {
@@ -535,8 +542,9 @@ function renderMap(animateTravel = false) {
     
     stationsLayer.appendChild(group);
   });
+  } // End of full re-render else block
   
-  // Draw other players (ship markers in grid)
+  // Draw other players (ship markers in grid) - always render these
   const validPlayers = allPlayers.filter(p => p != null && p.socketId);
   
   // Group players by station, excluding self
