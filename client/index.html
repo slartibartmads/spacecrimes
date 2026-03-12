@@ -13,12 +13,10 @@
   <!-- LOGIN SCREEN -->
   <div id="login-screen" class="modal-overlay" style="display: flex; align-items: center; justify-content: center;">
     <div class="modal" style="display: block;">
-      <h1>SPACE CRIMES</h1>
-      <h3>MULTIPLAYER EDITION</h3>
-      <p>Enter your username to join the shared universe:</p>
-      <input type="text" id="username-input" placeholder="Username" maxlength="20" style="width: 100%; padding: 8px; margin: 10px 0; font-family: 'Source Code Pro', monospace;">
+      <img src="img/logo.png" alt="Space Crimes Logo" style="max-width: 350px; margin: 0 auto 20px auto; display: block;">
+      <input type="text" id="username-input" placeholder="Name" maxlength="20" style="width: 100%; padding: 8px; margin: 10px 0; font-family: 'Source Code Pro', monospace;">
       <div class="modal-buttons">
-        <button id="join-btn">JOIN GAME</button>
+        <button id="join-btn">JOIN</button>
       </div>
       <p id="login-error" class="danger" style="display: none;"></p>
     </div>
@@ -61,7 +59,7 @@
           <!-- Dynamically populated with icon image or SVG hexagon -->
         </div>
         <div id="station-info">
-          <div id="station-label">DOCKED AT</div>
+          <div id="station-label">CURRENT SYSTEM</div>
           <h2 id="station-name">---</h2>
           <p id="station-description">---</p>
         </div>

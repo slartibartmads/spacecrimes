@@ -421,7 +421,7 @@ function renderMap() {
     text.setAttribute('y', station.position.y + size + (isMajor ? 14 : 12));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('fill', isMajor ? '#F2FFC5' : '#17D773');
-    text.setAttribute('font-size', isMajor ? '10' : '8');
+    text.setAttribute('font-size', isMajor ? '10' : '9');
     text.setAttribute('font-weight', '900');
     text.setAttribute('font-family', 'Source Code Pro, monospace');
     text.setAttribute('text-transform', 'uppercase');
@@ -450,11 +450,11 @@ function renderMap() {
     if (station.id === playerState.location) {
       const marker = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       marker.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_marker.svg');
-      marker.setAttribute('width', '23');
-      marker.setAttribute('height', '25');
+      marker.setAttribute('width', '32');
+      marker.setAttribute('height', '32');
       // Position marker centered on station position
-      marker.setAttribute('x', station.position.x - 11.5);
-      marker.setAttribute('y', station.position.y - 12.5);
+      marker.setAttribute('x', station.position.x - 16);
+      marker.setAttribute('y', station.position.y - 16);
       
       group.appendChild(marker);
     }
