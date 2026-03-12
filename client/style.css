@@ -172,7 +172,23 @@ th, td {
   text-align: left;
   padding: 4px 8px;
   border: 1px solid var(--text-green-dark);
-  font-size: 14px;
+  font-size: 13px;
+}
+
+/* Commodity column - truncate if needed */
+th:nth-child(1),
+td:nth-child(1) {
+  max-width: 225px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Make ACTION column as narrow as possible */
+th:nth-child(4),
+td:nth-child(4) {
+  width: 1%;
+  white-space: nowrap;
 }
 
 th {
@@ -201,9 +217,10 @@ button {
   border: 1px solid var(--border-green);
   padding: 4px 12px;
   cursor: pointer;
-  font-family: 'Courier New', monospace;
+  font-family: 'Source Code Pro', monospace;
   font-size: 14px;
   margin: 2px;
+  transition: all 0.2s ease;
 }
 
 button:hover:not(:disabled) {
@@ -795,6 +812,32 @@ button.combat-urgent:hover:not(:disabled) {
 .quantity-controls button {
   padding: 2px 6px;
   font-size: 10px;
+}
+
+.quantity-controls .sell-btn {
+  min-width: 120px;
+}
+
+.quantity-controls .sell-btn.profit {
+  background: var(--bg-black);
+  color: var(--text-green);
+  border-color: var(--text-green);
+}
+
+.quantity-controls .sell-btn.profit:hover:not(:disabled) {
+  background: var(--text-green);
+  color: var(--bg-black);
+}
+
+.quantity-controls .sell-btn.loss {
+  background: #320F09;
+  color: var(--danger-red);
+  border-color: var(--danger-red);
+}
+
+.quantity-controls .sell-btn.loss:hover:not(:disabled) {
+  background: var(--danger-red);
+  color: #320F09;
 }
 
 /* === SCROLLBAR === */

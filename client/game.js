@@ -867,6 +867,11 @@ function renderStation() {
     // Name with icon
     const nameCell = document.createElement('td');
     
+    // Create wrapper for proper vertical alignment
+    const nameWrapper = document.createElement('div');
+    nameWrapper.style.display = 'flex';
+    nameWrapper.style.alignItems = 'center';
+    
     // Add icon if available
     if (commodityIcons[commodity.id]) {
       const icon = document.createElement('img');
@@ -874,30 +879,51 @@ function renderStation() {
       icon.alt = commodity.name;
       icon.title = commodity.description; // Tooltip with flavor text
       icon.classList.add('commodity-icon');
-      nameCell.appendChild(icon);
+      nameWrapper.appendChild(icon);
     }
     
     // Add commodity name text
-    const nameText = document.createTextNode(commodity.name);
-    nameCell.appendChild(nameText);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = commodity.name;
+    nameWrapper.appendChild(nameSpan);
     
+    nameCell.appendChild(nameWrapper);
     row.appendChild(nameCell);
     
     // Calculate buy and sell prices (with markup/markdown)
     const buyPrice = Math.round(marketData.currentPrice * 1.05); // 5% markup
     const sellPrice = Math.round(marketData.currentPrice * 0.95); // 5% markdown
     
-    // BUY price column
-    const buyPriceCell = document.createElement('td');
-    buyPriceCell.textContent = `${buyPrice}cr`;
-    buyPriceCell.style.color = '#17D773'; // Green for buy
-    row.appendChild(buyPriceCell);
+    // Combined BUY/SELL column
+    const priceCell = document.createElement('td');
     
-    // SELL price column
-    const sellPriceCell = document.createElement('td');
-    sellPriceCell.textContent = `${sellPrice}cr`;
-    sellPriceCell.style.color = '#17D773'; // Green for sell (cheap)
-    row.appendChild(sellPriceCell);
+    // Create a wrapper div for flex layout
+    const priceWrapper = document.createElement('div');
+    priceWrapper.style.display = 'flex';
+    priceWrapper.style.justifyContent = 'space-between';
+    priceWrapper.style.alignItems = 'center';
+    
+    // Base price text in green
+    const priceText = document.createElement('span');
+    priceText.textContent = `${buyPrice}cr/${sellPrice}cr`;
+    priceText.style.color = '#17D773'; // Green
+    priceWrapper.appendChild(priceText);
+    
+    // Add arrow with appropriate color
+    if (marketData.currentPrice > commodity.basePrice) {
+      const arrowSpan = document.createElement('span');
+      arrowSpan.textContent = '↑';
+      arrowSpan.style.color = '#17D773'; // Green for high price
+      priceWrapper.appendChild(arrowSpan);
+    } else if (marketData.currentPrice < commodity.basePrice) {
+      const arrowSpan = document.createElement('span');
+      arrowSpan.textContent = '↓';
+      arrowSpan.style.color = '#FF5A41'; // Red for low price
+      priceWrapper.appendChild(arrowSpan);
+    }
+    
+    priceCell.appendChild(priceWrapper);
+    row.appendChild(priceCell);
     
     // HAVE column
     const haveCell = document.createElement('td');
@@ -906,15 +932,18 @@ function renderStation() {
     
     // Buy/Sell buttons
     const actionsCell = document.createElement('td');
-    actionsCell.classList.add('quantity-controls');
+    
+    const controlsWrapper = document.createElement('div');
+    controlsWrapper.classList.add('quantity-controls');
     
     const buyBtn = document.createElement('button');
     buyBtn.textContent = 'BUY';
     buyBtn.disabled = playerState.credits < buyPrice || playerState.cargoUsed >= playerState.cargoMax;
     buyBtn.addEventListener('click', () => buyCommodity(commodity.id, 1));
-    actionsCell.appendChild(buyBtn);
+    controlsWrapper.appendChild(buyBtn);
     
     const sellBtn = document.createElement('button');
+    sellBtn.classList.add('sell-btn');
     
     // Calculate profit/loss for selling
     if (playerQuantity > 0) {
@@ -931,18 +960,18 @@ function renderStation() {
         
         if (profitPerUnit > 0) {
           sellBtn.textContent = `SELL +${profitPerUnit}cr`;
-          sellBtn.style.color = '#17D773'; // Green for profit
+          sellBtn.classList.add('profit'); // Add profit class for green styling
         } else if (profitPerUnit < 0) {
           sellBtn.textContent = `SELL ${profitPerUnit}cr`;
-          sellBtn.style.color = '#FF5A41'; // Red for loss
+          sellBtn.classList.add('loss'); // Add loss class for styling
         } else {
           sellBtn.textContent = 'SELL ±0cr';
-          sellBtn.style.color = '#F2FFC5'; // Neutral
+          sellBtn.classList.add('profit'); // Break-even uses green styling
         }
       } else {
         // No avg buy price (free loot), so it's all profit
         sellBtn.textContent = `SELL +${sellPrice}cr`;
-        sellBtn.style.color = '#17D773'; // Green
+        sellBtn.classList.add('profit'); // Add profit class for green styling
       }
     } else {
       sellBtn.textContent = 'SELL';
@@ -950,8 +979,9 @@ function renderStation() {
     
     sellBtn.disabled = playerQuantity === 0;
     sellBtn.addEventListener('click', () => sellCommodity(commodity.id, 1));
-    actionsCell.appendChild(sellBtn);
+    controlsWrapper.appendChild(sellBtn);
     
+    actionsCell.appendChild(controlsWrapper);
     row.appendChild(actionsCell);
     commodityList.appendChild(row);
   });
