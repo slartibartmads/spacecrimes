@@ -28,6 +28,7 @@
       <div id="status-left">
         <span>PLAYER: <span id="status-username">---</span></span>
         <span>CREDITS: <span id="status-credits">500</span>cr</span>
+        <span>BANK: <span id="status-bank-balance">0</span>cr</span>
         <span>SHIELDS: <span id="status-hull">100</span>%</span>
         <span>FIREPOWER: <span id="status-damage">10</span></span>
         <span>CARGO: <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span> <button id="inventory-btn" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;">INV</button></span>
@@ -73,43 +74,66 @@
         </div>
       </div>
 
-      <!-- Commodities Table -->
-      <h3>STATION MARKET</h3>
-      <table id="commodity-table">
-        <thead>
-          <tr>
-            <th>COMMODITY</th>
-            <th>BUY↑</th>
-            <th>SELL↓</th>
-            <th>HAVE</th>
-            <th>ACTION</th>
-          </tr>
-        </thead>
-        <tbody id="commodity-list">
-          <!-- Dynamically populated -->
-        </tbody>
-      </table>
+      <!-- Market Section -->
+      <div id="market-section">
+        <!-- Commodities Table -->
+        <h3>STATION MARKET</h3>
+        <table id="commodity-table">
+          <thead>
+            <tr>
+              <th>COMMODITY</th>
+              <th>BUY↑</th>
+              <th>SELL↓</th>
+              <th>HAVE</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="commodity-list">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
 
-      <!-- Scanner Data -->
-      <div id="scanner-data" style="display: none;">
-        <h3>SCANNER DATA - ADJACENT STATIONS</h3>
-        <div id="scanner-content">
-          <!-- Dynamically populated when scanner is owned -->
+        <!-- Scanner Data -->
+        <div id="scanner-data" style="display: none;">
+          <h3>SCANNER DATA - ADJACENT STATIONS</h3>
+          <div id="scanner-content">
+            <!-- Dynamically populated when scanner is owned -->
+          </div>
+        </div>
+
+        <!-- Repair & Desperate Work Section -->
+        <div id="station-actions">
+          <button id="repair-btn">REPAIR SHIELDS (---cr)</button>
+          <button id="desperate-work-btn" class="warning" onclick="handleDesperateWork()">
+            DESPERATE MEASURES (5-15cr)
+          </button>
         </div>
       </div>
 
-      <!-- Repair & Desperate Work Section -->
-      <div id="station-actions">
-        <button id="repair-btn">REPAIR SHIELDS (---cr)</button>
-        <button id="desperate-work-btn" class="warning" onclick="handleDesperateWork()">
-          DESPERATE MEASURES (5-15cr)
-        </button>
+      <!-- Banking Section (only visible at The Mattress) -->
+      <div id="banking-section" style="display: none;">
+        <h3>BANKING</h3>
+        <p>Bank Balance: <span id="bank-balance">0</span>cr</p>
+        
+        <div style="margin-bottom: 15px;">
+          <input type="number" id="deposit-amount" placeholder="Amount" min="1" style="width: 100px; padding: 5px; margin-right: 5px;">
+          <button id="deposit-btn">DEPOSIT</button>
+          <button id="deposit-all-btn">DEPOSIT ALL</button>
+        </div>
+        
+        <div>
+          <input type="number" id="withdraw-amount" placeholder="Amount" min="1" style="width: 100px; padding: 5px; margin-right: 5px;">
+          <button id="withdraw-btn">WITHDRAW</button>
+          <button id="withdraw-all-btn">WITHDRAW ALL</button>
+        </div>
       </div>
 
-      <!-- Upgrades -->
-      <h3>UPGRADES</h3>
-      <div id="upgrade-list">
-        <!-- Dynamically populated -->
+      <!-- Upgrades Section -->
+      <div id="upgrades-section">
+        <h3>UPGRADES</h3>
+        <div id="upgrade-list">
+          <!-- Dynamically populated -->
+        </div>
       </div>
     </div>
 

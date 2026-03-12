@@ -116,6 +116,15 @@ const STATIONS = [
       "weapons": 1.0         // Neutral
     }
   },
+  {
+    id: "cosmobank",
+    name: "The Mattress",
+    type: "banking",
+    description: "Secure vault station. Store your credits safely... for a small fee.",
+    position: { x: 490, y: 380 },
+    contrabandPolicy: "safe",
+    priceModifiers: {}  // No commodities traded here
+  },
   
   // === MINOR STATIONS (12) ===
   // INNER SYSTEM (4 minor stations)
@@ -361,7 +370,13 @@ const ROUTES = [
   { from: "minor_6", to: "minor_4" },
   // Fort Attrition ↔ Vice Berth (TOLL)
   { from: "fort_attrition", to: "vice_berth", tollFee: 250 },
-  { from: "vice_berth", to: "fort_attrition", tollFee: 250 }
+  { from: "vice_berth", to: "fort_attrition", tollFee: 250 },
+  // The Mattress (cosmobank) ↔ Mäkinen-Tanaka Institute
+  { from: "cosmobank", to: "makinen_tanaka" },
+  { from: "makinen_tanaka", to: "cosmobank" },
+  // The Mattress (cosmobank) ↔ Scorched Point (minor_7)
+  { from: "cosmobank", to: "minor_7" },
+  { from: "minor_7", to: "cosmobank" }
 ];
 
 const UPGRADES = [

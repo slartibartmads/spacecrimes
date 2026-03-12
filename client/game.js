@@ -520,7 +520,7 @@ function renderMap(animateTravel = false) {
     const isMajor = station.type === 'military' || station.type === 'trading' || 
                     station.type === 'entertainment' || station.type === 'industrial' || 
                     station.type === 'agricultural' || station.type === 'research' ||
-                    station.type === 'bank';
+                    station.type === 'banking';
     const size = isMajor ? 17 : 10; // Major: 34px diameter, Minor: 20px diameter
     
     // Render icon for major stations, hexagon for minor stations
@@ -827,9 +827,11 @@ function renderStation() {
   document.getElementById('station-description').textContent = station.description;
   
   // Hide market and upgrades at The Mattress (bank only)
-  // const isBank = station.id === 'cosmobank';
-  // document.getElementById('market-section').style.display = isBank ? 'none' : 'block';
-  // document.getElementById('upgrades-section').style.display = isBank ? 'none' : 'block';
+  const isBank = station.id === 'cosmobank';
+  const marketSection = document.getElementById('market-section');
+  const upgradesSection = document.getElementById('upgrades-section');
+  if (marketSection) marketSection.style.display = isBank ? 'none' : 'block';
+  if (upgradesSection) upgradesSection.style.display = isBank ? 'none' : 'block';
   
   // Render commodities
   const commodityList = document.getElementById('commodity-list');

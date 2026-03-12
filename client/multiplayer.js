@@ -306,6 +306,48 @@ export function travel(destination) {
 }
 
 /**
+ * Deposit credits to bank
+ */
+export function depositCredits(amount) {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('bank:deposit', { amount }, (response) => {
+      if (response && response.success) {
+        playerState = response.playerState;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Unknown error'));
+      }
+    });
+  });
+}
+
+/**
+ * Withdraw credits from bank
+ */
+export function withdrawCredits(amount) {
+  return new Promise((resolve, reject) => {
+    if (!socket || !connected) {
+      reject(new Error('Not connected to server'));
+      return;
+    }
+    
+    socket.emit('bank:withdraw', { amount }, (response) => {
+      if (response && response.success) {
+        playerState = response.playerState;
+        resolve(response);
+      } else {
+        reject(new Error(response?.error || 'Unknown error'));
+      }
+    });
+  });
+}
+
+/**
  * Buy upgrade
  */
 export function buyUpgrade(upgradeId) {
