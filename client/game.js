@@ -470,7 +470,7 @@ function renderMap(animateTravel = false) {
     // Add location marker if this is the current location (after text so it renders on top)
     if (station.id === playerState.location) {
       const marker = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-      marker.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_marker.svg');
+      marker.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_marker.png');
       marker.setAttribute('width', '32');
       marker.setAttribute('height', '32');
       marker.setAttribute('id', 'player-marker'); // Add ID for animation
