@@ -471,36 +471,42 @@ function renderMap(animateTravel = false) {
           isAnimating = true;
           
           // Start at previous position
-          marker.setAttribute('x', fromStation.position.x - 16);
-          marker.setAttribute('y', fromStation.position.y - 16);
+          const startX = fromStation.position.x - 16;
+          const startY = fromStation.position.y - 16;
+          const endX = toStation.position.x - 16;
+          const endY = toStation.position.y - 16;
           
-          // Create animation element
-          const animX = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-          animX.setAttribute('attributeName', 'x');
-          animX.setAttribute('from', fromStation.position.x - 16);
-          animX.setAttribute('to', toStation.position.x - 16);
-          animX.setAttribute('dur', '0.8s');
-          animX.setAttribute('fill', 'freeze');
+          marker.setAttribute('x', startX);
+          marker.setAttribute('y', startY);
           
-          const animY = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-          animY.setAttribute('attributeName', 'y');
-          animY.setAttribute('from', fromStation.position.y - 16);
-          animY.setAttribute('to', toStation.position.y - 16);
-          animY.setAttribute('dur', '0.8s');
-          animY.setAttribute('fill', 'freeze');
+          // Animate using requestAnimationFrame
+          const duration = 800; // 0.8 seconds
+          const startTime = performance.now();
           
-          // Reset animation flag when complete
-          animX.addEventListener('endEvent', () => {
-            isAnimating = false;
-            previousLocation = null;
-          });
+          function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function (ease-in-out)
+            const eased = progress < 0.5 
+              ? 2 * progress * progress 
+              : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+            
+            const currentX = startX + (endX - startX) * eased;
+            const currentY = startY + (endY - startY) * eased;
+            
+            marker.setAttribute('x', currentX);
+            marker.setAttribute('y', currentY);
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              isAnimating = false;
+              previousLocation = null;
+            }
+          }
           
-          marker.appendChild(animX);
-          marker.appendChild(animY);
-          
-          // Start the animation
-          animX.beginElement();
-          animY.beginElement();
+          requestAnimationFrame(animate);
         } else {
           // No previous station found, just position normally
           marker.setAttribute('x', station.position.x - 16);
