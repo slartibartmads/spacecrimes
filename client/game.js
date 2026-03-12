@@ -15,6 +15,18 @@ let previousLocation = null; // Track previous location for animation
 let isAnimating = false; // Track if marker is currently animating
 let combatCountdownInterval = null; // Track combat countdown timer
 
+// Commodity icon mapping
+const commodityIcons = {
+  'croakers': 'img/icon_cigs.svg',
+  'booze': 'img/icon_swill.svg',
+  'cognex': 'img/icon_stims.svg',
+  'credentials': 'img/icon_cores.svg',
+  'weapons': 'img/icon_atrocities.svg',
+  'crank': 'img/icon_meth.svg',
+  'organs': 'img/icon_organs.svg',
+  'ai_chips': 'img/icon_ai_chips.svg'
+};
+
 // === HELPER FUNCTIONS ===
 
 function getStationName(stationId) {
@@ -144,9 +156,30 @@ function showInventoryModal() {
       
       const row = document.createElement('tr');
       
-      // Commodity name
+      // Commodity name with icon
       const nameCell = document.createElement('td');
-      nameCell.textContent = commodity.name;
+      
+      // Create wrapper for proper vertical alignment
+      const nameWrapper = document.createElement('div');
+      nameWrapper.style.display = 'flex';
+      nameWrapper.style.alignItems = 'center';
+      
+      // Add icon if available
+      if (commodityIcons[commodityId]) {
+        const icon = document.createElement('img');
+        icon.src = commodityIcons[commodityId];
+        icon.alt = commodity.name;
+        icon.title = commodity.description;
+        icon.classList.add('commodity-icon');
+        nameWrapper.appendChild(icon);
+      }
+      
+      // Add commodity name text
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = commodity.name;
+      nameWrapper.appendChild(nameSpan);
+      
+      nameCell.appendChild(nameWrapper);
       row.appendChild(nameCell);
       
       // Quantity
@@ -163,9 +196,7 @@ function showInventoryModal() {
       const actionCell = document.createElement('td');
       const jettisonBtn = document.createElement('button');
       jettisonBtn.textContent = 'JETTISON';
-      jettisonBtn.style.background = '#FF5A41';
-      jettisonBtn.style.padding = '2px 8px';
-      jettisonBtn.style.fontSize = '11px';
+      jettisonBtn.classList.add('jettison-btn');
       jettisonBtn.addEventListener('click', () => handleJettison(commodityId, cargoData.quantity));
       actionCell.appendChild(jettisonBtn);
       row.appendChild(actionCell);
@@ -836,18 +867,6 @@ function renderStation() {
   // Render commodities
   const commodityList = document.getElementById('commodity-list');
   commodityList.innerHTML = '';
-  
-  // Commodity icon mapping
-  const commodityIcons = {
-    'croakers': 'img/icon_cigs.svg',
-    'booze': 'img/icon_swill.svg',
-    'cognex': 'img/icon_stims.svg',
-    'credentials': 'img/icon_cores.svg',
-    'weapons': 'img/icon_atrocities.svg',
-    'crank': 'img/icon_meth.svg',
-    'organs': 'img/icon_organs.svg',
-    'ai_chips': 'img/icon_ai_chips.svg'
-  };
   
   COMMODITIES.forEach(commodity => {
     // Skip if commodity not available at this station

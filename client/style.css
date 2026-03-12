@@ -442,6 +442,12 @@ button.combat-urgent:hover:not(:disabled) {
   max-width: 500px;
 }
 
+/* Inventory modal - wider than default */
+#inventory-modal {
+  min-width: 550px;
+  max-width: 650px;
+}
+
 .modal.active {
   display: block;
 }
@@ -838,6 +844,20 @@ button.combat-urgent:hover:not(:disabled) {
 .quantity-controls .sell-btn.loss:hover:not(:disabled) {
   background: var(--danger-red);
   color: #320F09;
+}
+
+/* Jettison button styling (matches loss sell button) */
+.jettison-btn {
+  background: #320F09 !important;
+  color: var(--danger-red) !important;
+  border-color: var(--danger-red) !important;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.jettison-btn:hover:not(:disabled) {
+  background: var(--danger-red) !important;
+  color: #320F09 !important;
 }
 
 /* === SCROLLBAR === */
