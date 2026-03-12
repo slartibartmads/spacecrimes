@@ -811,7 +811,7 @@ button.combat-urgent:hover:not(:disabled) {
 
 .quantity-controls button {
   padding: 2px 6px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .quantity-controls .sell-btn {
