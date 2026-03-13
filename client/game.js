@@ -9,7 +9,7 @@ let playerState = null;
 let gameState = null; // markets, events, tick
 let allPlayers = []; // Other players in the system
 let activities = [];
-let pendingTravel = null;
+let pendingPath = []; // Multi-hop path queue (array of station IDs, excluding current location)
 let lastCombatLogLength = 0; // Track combat messages already shown
 let previousLocation = null; // Track previous location for animation
 let isAnimating = false; // Track if marker is currently animating
@@ -468,11 +468,10 @@ function handleTick(data) {
   renderStatus();
   updateDebugPanel(); // Update debug panel on tick
 
-  // Execute queued travel on new tick
-  if (pendingTravel) {
-    const destination = pendingTravel;
-    pendingTravel = null;
-    attemptTravel(destination);
+  // Execute next hop in pending path
+  if (pendingPath.length > 0) {
+    const next = pendingPath.shift();
+    attemptTravel(next);
   }
 }
 
@@ -633,6 +632,27 @@ function renderMap(animateTravel = false) {
       }
     });
   
+  // Draw pending path highlight lines
+  if (pendingPath.length > 0) {
+    const fullPath = [playerState.location, ...pendingPath];
+    for (let i = 0; i < fullPath.length - 1; i++) {
+      const fromSt = STATIONS.find(s => s.id === fullPath[i]);
+      const toSt   = STATIONS.find(s => s.id === fullPath[i + 1]);
+      if (!fromSt || !toSt) continue;
+      const pathLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      pathLine.setAttribute('x1', fromSt.position.x);
+      pathLine.setAttribute('y1', fromSt.position.y);
+      pathLine.setAttribute('x2', toSt.position.x);
+      pathLine.setAttribute('y2', toSt.position.y);
+      pathLine.setAttribute('stroke', '#17D773');
+      pathLine.setAttribute('stroke-width', '3');
+      pathLine.setAttribute('stroke-dasharray', '6 4');
+      pathLine.setAttribute('opacity', '0.6');
+      pathLine.setAttribute('class', 'queued-travel-ring');
+      routesLayer.appendChild(pathLine);
+    }
+  }
+
   // Station icon mapping
   const stationIcons = {
     'fort_attrition': 'img/icon_fort.svg',
@@ -782,25 +802,54 @@ function renderMap(animateTravel = false) {
       markerLayer.appendChild(marker);
     }
 
-    // Add queued travel indicator
-    if (station.id === pendingTravel) {
-      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      ring.setAttribute('cx', station.position.x);
-      ring.setAttribute('cy', station.position.y);
-      ring.setAttribute('r', '18');
-      ring.setAttribute('fill', 'none');
-      ring.setAttribute('stroke', '#17D773');
-      ring.setAttribute('stroke-width', '2');
-      ring.setAttribute('stroke-dasharray', '4 3');
-      ring.setAttribute('opacity', '0.8');
-      ring.setAttribute('class', 'queued-travel-ring');
-      markerLayer.appendChild(ring);
+    // Path waypoint indicator
+    if (pendingPath.length > 0) {
+      const pathIndex = pendingPath.indexOf(station.id);
+      if (pathIndex !== -1) {
+        const isDestination = pathIndex === pendingPath.length - 1;
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', station.position.x);
+        ring.setAttribute('cy', station.position.y);
+        ring.setAttribute('r', isDestination ? '18' : '12');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#17D773');
+        ring.setAttribute('stroke-width', isDestination ? '2' : '1.5');
+        ring.setAttribute('stroke-dasharray', '4 3');
+        ring.setAttribute('opacity', isDestination ? '0.9' : '0.5');
+        ring.setAttribute('class', 'queued-travel-ring');
+        markerLayer.appendChild(ring);
+      }
     }
     
-    // Click to travel
+    // Click to travel / plot path
     group.addEventListener('click', () => {
-      if (station.id !== playerState.location) {
-        attemptTravel(station.id);
+      const target = station.id;
+      if (target === playerState.location) return;
+
+      // If clicking the next hop in the current path, cancel it
+      if (pendingPath.length > 0 && pendingPath[pendingPath.length - 1] === target && pendingPath[0] !== target) {
+        // clicking destination of existing path = cancel
+        pendingPath = [];
+        addLog('Path cancelled', 'info');
+        renderMap();
+        return;
+      }
+
+      // Compute path from current location to target
+      const path = findPath(playerState.location, target);
+      if (!path || path.length === 0) {
+        addLog('No route to that station', 'danger');
+        return;
+      }
+
+      if (path.length === 1) {
+        // Adjacent station — try to travel immediately, queue if blocked
+        pendingPath = [];
+        attemptTravel(target);
+      } else {
+        // Multi-hop — attempt first hop immediately, queue the rest
+        pendingPath = path.slice(1); // store remaining hops after first
+        attemptTravel(path[0]);
       }
     });
     
@@ -1469,12 +1518,39 @@ async function sellCommodity(commodityId, quantity) {
   }
 }
 
+// BFS shortest path between two station IDs using ROUTES graph, avoiding toll routes
+function findPath(fromId, toId) {
+  if (fromId === toId) return [];
+  const adj = {};
+  ROUTES.forEach(r => {
+    if (r.tollFee) return; // skip toll routes
+    if (!adj[r.from]) adj[r.from] = [];
+    adj[r.from].push(r.to);
+  });
+  const queue = [[fromId]];
+  const visited = new Set([fromId]);
+  while (queue.length) {
+    const path = queue.shift();
+    const node = path[path.length - 1];
+    for (const neighbor of (adj[node] || [])) {
+      if (neighbor === toId) return [...path, neighbor].slice(1); // exclude start
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push([...path, neighbor]);
+      }
+    }
+  }
+  return null; // No path found
+}
+
 async function attemptTravel(destination) {
   try {
     const result = await MP.travel(destination);
-    pendingTravel = null; // Clear queue on successful travel
+    // Travel succeeded — path continues in handleTick via pendingPath
     if (result.pirateEncounter || result.inspection) {
-      // Modal will be shown
+      // Combat/inspection interrupts the path
+      pendingPath = [];
+      renderMap();
     } else {
       renderMap();
       renderPlayersHere();
@@ -1482,19 +1558,15 @@ async function attemptTravel(destination) {
   } catch (error) {
     const msg = error.message || String(error) || '';
     if (msg.includes('only travel once per tick')) {
-      // Queue the travel for next tick (toggle if same destination)
-      if (pendingTravel === destination) {
-        pendingTravel = null;
-        addLog('Queued travel cancelled', 'info');
-      } else {
-        pendingTravel = destination;
-        const station = STATIONS.find(s => s.id === destination);
-        addLog(`Travel to ${station ? station.name : destination} queued for next tick`, 'info');
-      }
-      renderMap(); // Re-render to show/clear queue indicator
+      // Already moved this tick — push destination back to front of path and wait
+      pendingPath = [destination, ...pendingPath];
+      renderMap(); // Show updated path indicator
     } else {
+      // Real error (e.g. not adjacent, can't afford toll) — cancel path
+      pendingPath = [];
       console.error('Travel error:', error);
       addLog(msg || 'Unknown error', 'danger');
+      renderMap();
     }
   }
 }
