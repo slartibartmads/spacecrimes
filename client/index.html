@@ -26,12 +26,12 @@
     <!-- STATUS BAR -->
     <div id="status-bar" class="panel">
       <div id="status-left">
-        <span>PLAYER: <span id="status-username">---</span></span>
-        <span>CREDITS: <span id="status-credits">500</span>cr</span>
-        <span>BANK: <span id="status-bank-balance">0</span>cr</span>
+        <span id="status-username">---</span>
+      </div>
+      <div id="status-center">
+        <span><span id="status-credits">500</span>cr (<span id="status-bank-balance">0</span> banked)</span>
         <span>SHIELDS: <span id="status-hull">100</span>%</span>
-        <span>FIREPOWER: <span id="status-damage">10</span></span>
-        <span>CARGO: <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span> <button id="inventory-btn" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;">INV</button></span>
+        <button id="inventory-btn">CARGO <span id="status-cargo">0</span>/<span id="status-cargo-max">20</span></button>
         <span id="status-bounty" style="display: none; color: #FF5A41;">BOUNTY: <span id="status-bounty-amount">0</span>cr</span>
       </div>
       <div id="status-right">
