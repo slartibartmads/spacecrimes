@@ -76,9 +76,9 @@ function checkAndAdvanceTick() {
     return;
   }
   
-  // Tick if MIN_TICK_INTERVAL passed AND all players have traveled
-  if (timeSinceLastTick >= MIN_TICK_INTERVAL && haveAllPlayersTraveled()) {
-    console.log(`Tick advancing: All ${playerCount} players traveled and MIN_TICK_INTERVAL passed`);
+  // Tick immediately if all players have traveled
+  if (haveAllPlayersTraveled()) {
+    console.log(`Tick advancing: All ${playerCount} players traveled`);
     advanceTick();
     return;
   }

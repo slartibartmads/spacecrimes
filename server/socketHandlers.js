@@ -1230,6 +1230,11 @@ function handleCombatAction(socket, data, callback, io) {
     playerState: getPlayer(socket.id),
     combatState: result.combatState
   });
+
+  // Try to advance tick if combat is resolved
+  if (result.combatState.resolved) {
+    tryAdvanceTick();
+  }
 }
 
 /**

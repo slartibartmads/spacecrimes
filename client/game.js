@@ -467,6 +467,13 @@ function handleTick(data) {
   renderStation();
   renderStatus();
   updateDebugPanel(); // Update debug panel on tick
+
+  // Execute queued travel on new tick
+  if (pendingTravel) {
+    const destination = pendingTravel;
+    pendingTravel = null;
+    attemptTravel(destination);
+  }
 }
 
 function showEventModal(eventData) {
@@ -773,6 +780,21 @@ function renderMap(animateTravel = false) {
       }
       
       markerLayer.appendChild(marker);
+    }
+
+    // Add queued travel indicator
+    if (station.id === pendingTravel) {
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring.setAttribute('cx', station.position.x);
+      ring.setAttribute('cy', station.position.y);
+      ring.setAttribute('r', '18');
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', '#17D773');
+      ring.setAttribute('stroke-width', '2');
+      ring.setAttribute('stroke-dasharray', '4 3');
+      ring.setAttribute('opacity', '0.8');
+      ring.setAttribute('class', 'queued-travel-ring');
+      markerLayer.appendChild(ring);
     }
     
     // Click to travel
@@ -1450,17 +1472,30 @@ async function sellCommodity(commodityId, quantity) {
 async function attemptTravel(destination) {
   try {
     const result = await MP.travel(destination);
-    // Activity feed will show successful travel
-    // Combat/inspection will show their own modals
+    pendingTravel = null; // Clear queue on successful travel
     if (result.pirateEncounter || result.inspection) {
       // Modal will be shown
     } else {
-      renderMap(); // Update player location on map
-      renderPlayersHere(); // Update list of players at new location
+      renderMap();
+      renderPlayersHere();
     }
   } catch (error) {
-    console.error('Travel error:', error);
-    addLog(error.message || String(error) || 'Unknown error', 'danger');
+    const msg = error.message || String(error) || '';
+    if (msg.includes('only travel once per tick')) {
+      // Queue the travel for next tick (toggle if same destination)
+      if (pendingTravel === destination) {
+        pendingTravel = null;
+        addLog('Queued travel cancelled', 'info');
+      } else {
+        pendingTravel = destination;
+        const station = STATIONS.find(s => s.id === destination);
+        addLog(`Travel to ${station ? station.name : destination} queued for next tick`, 'info');
+      }
+      renderMap(); // Re-render to show/clear queue indicator
+    } else {
+      console.error('Travel error:', error);
+      addLog(msg || 'Unknown error', 'danger');
+    }
   }
 }
 

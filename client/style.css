@@ -263,6 +263,15 @@ button.combat-urgent:hover:not(:disabled) {
   color: var(--bg-black);
 }
 
+@keyframes queued-travel-dash {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -28; }
+}
+
+.queued-travel-ring {
+  animation: queued-travel-dash 1s linear infinite;
+}
+
 @keyframes pulse-red {
   0%, 100% {
     box-shadow: 0 0 5px rgba(255, 90, 65, 0.3);
