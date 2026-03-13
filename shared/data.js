@@ -236,7 +236,7 @@ const STATIONS = [
     name: "Wreck Hub",
     type: "minor",
     description: "Built from salvaged ship parts",
-    position: { x: 491, y: 321 },
+    position: { x: 491, y: 246 },
     contrabandPolicy: "safe",
     priceModifiers: {}
   },
