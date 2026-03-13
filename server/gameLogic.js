@@ -2063,28 +2063,34 @@ export function calculateContrabandValue(player, markets) {
 
 // Calculate total cargo value (all cargo is contraband now)
 export function calculateTotalCargoValue(player, markets) {
+  if (!player?.cargo || !player?.location) return 0;
+  
   let total = 0;
   const currentStation = STATIONS.find(s => s.id === player.location);
   
   Object.keys(player.cargo).forEach(commodityId => {
     const commodity = COMMODITIES.find(c => c.id === commodityId);
     const quantity = player.cargo[commodityId];
+    if (!quantity || !commodity) return;
+    
     // If markets not provided (during combat init), use base price
-    const price = markets[currentStation?.id]?.[commodityId]?.currentPrice || commodity.basePrice;
-    total += quantity * price;
+    const price = markets?.[currentStation?.id]?.[commodityId]?.currentPrice || commodity.basePrice;
+    if (price) {
+      total += quantity * price;
+    }
   });
   
-  return total;
+  return total || 0;
 }
 
 /**
  * Calculate toll fee for a route based on base toll + cargo value percentage
  */
 export function calculateTollFee(route, player, markets) {
-  const baseToll = route.tollFee || 0;
+  const baseToll = route?.tollFee || 0;
   if (baseToll === 0) return 0;
   
-  const cargoValue = calculateTotalCargoValue(player, markets);
+  const cargoValue = calculateTotalCargoValue(player, markets) || 0;
   const cargoFee = Math.floor(cargoValue * CONSTANTS.TOLL_CARGO_PERCENTAGE);
   
   return baseToll + cargoFee;
@@ -2118,38 +2124,46 @@ export function getInspectionChance(player) {
 }
 
 export function calculateNetWorth(player, markets) {
-  let worth = player.credits;
+  // Ensure we start with a valid number
+  let worth = player?.credits || 0;
   
   // Add bank balance
-  if (player.bankAccount && player.bankAccount.balance) {
+  if (player?.bankAccount?.balance) {
     worth += player.bankAccount.balance;
   }
   
   // Add cargo value
-  const currentStation = STATIONS.find(s => s.id === player.location);
-  if (currentStation && markets && markets[currentStation.id]) {
-    Object.keys(player.cargo).forEach(commodityId => {
-      const quantity = player.cargo[commodityId];
-      if (markets[currentStation.id][commodityId]) {
-        const price = markets[currentStation.id][commodityId].currentPrice;
-        worth += quantity * price;
+  if (player?.cargo && player?.location) {
+    const currentStation = STATIONS.find(s => s.id === player.location);
+    if (currentStation && markets && markets[currentStation.id]) {
+      Object.keys(player.cargo).forEach(commodityId => {
+        const quantity = player.cargo[commodityId];
+        if (quantity && markets[currentStation.id][commodityId]) {
+          const price = markets[currentStation.id][commodityId].currentPrice;
+          if (price) {
+            worth += quantity * price;
+          }
+        }
+      });
+    }
+  }
+  
+  // Add upgrade value (sum of costs for all tiers purchased)
+  if (player?.upgrades) {
+    Object.keys(player.upgrades).forEach(upgradeId => {
+      const tier = player.upgrades[upgradeId];
+      const upgrade = UPGRADES.find(u => u.id === upgradeId);
+      if (upgrade && tier > 0) {
+        // Calculate total cost for all tiers: baseCost * (multiplier^0 + multiplier^1 + ... + multiplier^(tier-1))
+        for (let i = 0; i < tier; i++) {
+          worth += upgrade.baseCost * Math.pow(upgrade.multiplier, i);
+        }
       }
     });
   }
   
-  // Add upgrade value (sum of costs for all tiers purchased)
-  Object.keys(player.upgrades).forEach(upgradeId => {
-    const tier = player.upgrades[upgradeId];
-    const upgrade = UPGRADES.find(u => u.id === upgradeId);
-    if (upgrade && tier > 0) {
-      // Calculate total cost for all tiers: baseCost * (multiplier^0 + multiplier^1 + ... + multiplier^(tier-1))
-      for (let i = 0; i < tier; i++) {
-        worth += upgrade.baseCost * Math.pow(upgrade.multiplier, i);
-      }
-    }
-  });
-  
-  return Math.round(worth);
+  // Ensure we return a valid number
+  return Math.round(worth) || 0;
 }
 
 // === PVP HELPER FUNCTIONS ===
