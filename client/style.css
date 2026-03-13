@@ -366,6 +366,7 @@ button.combat-urgent:hover:not(:disabled) {
 #status-left {
   display: flex;
   gap: 15px;
+  align-items: center;
 }
 
 #status-right {
