@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { background: #0D1E06; color: #17D773; font-family: monospace; padding: 20px; }
+    
+    .draggable-modal {
+      cursor: default;
+      box-shadow: 0 0 40px 10px rgba(0, 0, 0, 0.8);
+    }
+    
+    #debug-panel {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .titlebar-container {
+      background: #17D773;
+      height: 26px;
+      position: relative;
+      margin: 0;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+    
+    .titlebar-title {
+      font-weight: 900;
+      font-size: 12px;
+      color: #062604;
+    }
+  </style>
+</head>
+<body>
+  <button onclick="togglePanel()">Toggle Debug Panel</button>
+  
+  <div id="debug-panel" class="draggable-modal" style="display: none; position: fixed; top: 50px; right: 10px; background: rgba(0, 0, 0, 0.95); border: 2px solid yellow; z-index: 9999; min-width: 300px; max-width: 400px; max-height: 90vh;">
+    <div class="titlebar-container">
+      <div class="titlebar-title-wrapper">
+        <span class="titlebar-title">DEBUG</span>
+      </div>
+    </div>
+    <div style="padding: 15px; overflow-y: auto; flex: 1; background: rgba(0,0,0,0.5);">
+      <p>Test content here</p>
+      <p>More content</p>
+      <p>Even more content</p>
+    </div>
+  </div>
+  
+  <script>
+    function togglePanel() {
+      const panel = document.getElementById('debug-panel');
+      const isVisible = panel.style.display === 'flex';
+      panel.style.display = isVisible ? 'none' : 'flex';
+      console.log('Panel display:', panel.style.display);
+      console.log('Panel dimensions:', panel.getBoundingClientRect());
+    }
+  </script>
+</body>
+</html>

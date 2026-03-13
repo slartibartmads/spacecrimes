@@ -27,6 +27,86 @@ const commodityIcons = {
   'ai_chips': 'img/icon_ai_chips.svg'
 };
 
+// === DRAGGABLE MODAL SYSTEM ===
+
+function makeDraggable(modal, dragHandle) {
+  let isDragging = false;
+  let currentX;
+  let currentY;
+  let initialX;
+  let initialY;
+
+  dragHandle.addEventListener('mousedown', dragStart);
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', dragEnd);
+
+  // Bring modal to front on click
+  modal.addEventListener('mousedown', () => {
+    modal.style.zIndex = '1001';
+  });
+
+  function dragStart(e) {
+    if (modal.style.display === 'none') return;
+    
+    const rect = modal.getBoundingClientRect();
+    initialX = e.clientX - rect.left;
+    initialY = e.clientY - rect.top;
+    
+    isDragging = true;
+  }
+
+  function drag(e) {
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+
+    // Apply position
+    modal.style.left = currentX + 'px';
+    modal.style.top = currentY + 'px';
+    modal.style.transform = 'none'; // Override centering transform
+  }
+
+  function dragEnd(e) {
+    isDragging = false;
+  }
+}
+
+function initDraggableModals() {
+  // Inventory modal
+  const inventoryModal = document.getElementById('inventory-modal');
+  const inventoryHandle = inventoryModal?.querySelector('.titlebar-container');
+  const inventoryCloseBtn = inventoryModal?.querySelector('.titlebar-close-btn');
+  
+  if (inventoryModal && inventoryHandle) {
+    makeDraggable(inventoryModal, inventoryHandle);
+  }
+  
+  if (inventoryCloseBtn) {
+    inventoryCloseBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent drag from triggering
+      inventoryModal.style.display = 'none';
+    });
+  }
+
+  // Debug panel
+  const debugPanel = document.getElementById('debug-panel');
+  const debugHandle = debugPanel?.querySelector('.titlebar-container');
+  const debugCloseBtn = debugPanel?.querySelector('.titlebar-close-btn');
+  
+  if (debugPanel && debugHandle) {
+    makeDraggable(debugPanel, debugHandle);
+  }
+  
+  if (debugCloseBtn) {
+    debugCloseBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent drag from triggering
+      debugPanel.style.display = 'none';
+    });
+  }
+}
+
 // === HELPER FUNCTIONS ===
 
 function getStationName(stationId) {
@@ -106,6 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize debug panel
   initializeDebugPanel();
   
+  // Initialize draggable modals
+  initDraggableModals();
+  
   // Set up inventory button
   const inventoryBtn = document.getElementById('inventory-btn');
   if (inventoryBtn) {
@@ -123,10 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function showInventoryModal() {
   const modal = document.getElementById('inventory-modal');
-  const overlay = document.getElementById('modal-overlay');
   const inventoryList = document.getElementById('inventory-list');
   
-  if (!modal || !overlay || !inventoryList) return;
+  if (!modal || !inventoryList) return;
   
   // Clear existing content
   inventoryList.innerHTML = '';
@@ -205,17 +287,20 @@ function showInventoryModal() {
     });
   }
   
-  // Show modal
-  overlay.style.display = 'block';
+  // Reset position to center
+  modal.style.left = '';
+  modal.style.top = '';
+  modal.style.transform = '';
+  modal.style.zIndex = '1000';
+  
+  // Show modal (no overlay for draggable modals)
   modal.style.display = 'block';
 }
 
 function closeInventoryModal() {
   const modal = document.getElementById('inventory-modal');
-  const overlay = document.getElementById('modal-overlay');
   
   if (modal) modal.style.display = 'none';
-  if (overlay) overlay.style.display = 'none';
 }
 
 async function handleJettison(commodityId, quantity) {
@@ -319,6 +404,7 @@ function handlePlayerUpdate(player) {
   renderStation();
   renderMap(locationChanged); // Pass flag to trigger animation
   renderPlayersHere(); // Update players here when our location changes
+  updateDebugPanel(); // Update debug panel when player state changes
 }
 
 function handleOtherPlayerUpdate(data) {
@@ -374,6 +460,7 @@ function handleTick(data) {
   
   renderStation();
   renderStatus();
+  updateDebugPanel(); // Update debug panel on tick
 }
 
 function showEventModal(eventData) {
@@ -2031,9 +2118,20 @@ function initializeDebugPanel() {
   document.addEventListener('keydown', (e) => {
     if (e.key === '|') {
       e.preventDefault();
-      const isVisible = debugPanel.style.display === 'block';
-      debugPanel.style.display = isVisible ? 'none' : 'block';
+      console.log('Debug panel toggle triggered');
+      console.log('Panel element:', debugPanel);
+      console.log('Current display:', debugPanel.style.display);
+      const isVisible = debugPanel.style.display === 'flex';
+      debugPanel.style.display = isVisible ? 'none' : 'flex';
+      console.log('New display:', debugPanel.style.display);
+      console.log('Panel dimensions:', debugPanel.getBoundingClientRect());
+      console.log('Panel computed style:', window.getComputedStyle(debugPanel).display);
       if (!isVisible) {
+        // Reset position to center when opening
+        debugPanel.style.left = '50%';
+        debugPanel.style.top = '60px';
+        debugPanel.style.transform = 'translateX(-50%)';
+        debugPanel.style.zIndex = '9999';
         updateDebugPanel();
       }
     }
@@ -2258,7 +2356,7 @@ function updateDebugPanel() {
   const locationElem = document.getElementById('debug-location');
   
   if (tickElem) {
-    tickElem.textContent = gameState.currentTick || 0;
+    tickElem.textContent = gameState.tick || 0;
   }
   
   if (eventCountElem) {

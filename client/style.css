@@ -8,6 +8,8 @@
   --warning-yellow: #F2FFC5;
   --border-green: #17D773;
   --row-alt: #0f2408;
+  --titlebar-green: #17D773;
+  --titlebar-dark: #062604;
 }
 
 * {
@@ -447,6 +449,85 @@ button.combat-urgent:hover:not(:disabled) {
 #inventory-modal {
   min-width: 550px;
   max-width: 650px;
+}
+
+/* Draggable modal modifications */
+.draggable-modal {
+  cursor: default;
+  box-shadow: 0 0 40px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Debug panel flexbox layout */
+#debug-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.debug-panel-content {
+  padding: 15px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Titlebar for draggable windows */
+.titlebar-container {
+  background: var(--titlebar-green);
+  height: 26px;
+  position: relative;
+  margin: 0;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  overflow: visible;
+}
+
+.titlebar-container:active {
+  cursor: grabbing;
+}
+
+.titlebar-close-btn {
+  position: absolute;
+  left: 2px;
+  width: 9.58px;
+  height: 9.58px;
+  cursor: pointer;
+  z-index: 2;
+  padding: 5px;
+  box-sizing: content-box;
+}
+
+.titlebar-decoration {
+  position: absolute;
+  left: 22px;
+  right: 0;
+  width: calc(100% - 22px);
+  height: auto;
+  pointer-events: none;
+}
+
+.titlebar-title-wrapper {
+  background: var(--titlebar-green);
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  z-index: 1;
+}
+
+.titlebar-title {
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--titlebar-dark);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .modal.active {
