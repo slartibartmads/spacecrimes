@@ -1127,14 +1127,19 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
   // Calculate total cargo value for risk scaling (all cargo is contraband now)
   const cargoValue = calculateTotalCargoValue(newPlayer, {});
   
-  // Check for pirate encounter during travel (value-based risk)
+  // Calculate net worth for wealth-based scaling
+  const netWorth = calculateNetWorth(newPlayer, markets);
+  
+  // Check for pirate encounter during travel (value-based + wealth-based risk)
   let pirateChance = CONSTANTS.BASE_PIRATE_CHANCE + (cargoValue * CONSTANTS.CARGO_VALUE_PIRATE_MULTIPLIER);
+  // Add wealth-based scaling for late-game balance
+  pirateChance += (netWorth * CONSTANTS.WEALTH_ENCOUNTER_MULTIPLIER);
   pirateChance = Math.min(pirateChance, CONSTANTS.MAX_PIRATE_CHANCE);
   
   const pirateEncounter = Math.random() < pirateChance;
   
   if (pirateEncounter) {
-    const combat = initiateCombat(newPlayer);
+    const combat = initiateCombat(newPlayer, netWorth);
     newPlayer.activeCombat = combat;
     
     return {
@@ -1161,6 +1166,9 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
     // Add cargo value risk
     let copChance = baseCopChance + (cargoValue * CONSTANTS.CARGO_VALUE_COP_MULTIPLIER);
     
+    // Add wealth-based scaling for late-game balance
+    copChance += (netWorth * CONSTANTS.WEALTH_ENCOUNTER_MULTIPLIER);
+    
     // Apply crackdown multiplier
     if (hasCrackdown) {
       copChance *= CONSTANTS.CRACKDOWN_COP_MULTIPLIER;
@@ -1178,7 +1186,7 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
     const copEncounter = Math.random() < copChance;
     
     if (copEncounter) {
-      const combat = initiateCopCombat(newPlayer);
+      const combat = initiateCopCombat(newPlayer, netWorth);
       newPlayer.activeCombat = combat;
       
       return {
@@ -1199,24 +1207,43 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
 
 // === COMBAT SYSTEM ===
 
-export function rollPirateType(contrabandValue) {
+export function rollPirateType(contrabandValue, netWorth = 0) {
+  // Determine base tier from cargo value
+  let baseTier = 0; // 0=scout, 1=raider, 2=battleship
+  
   if (contrabandValue < CONSTANTS.PIRATE_SCOUT_THRESHOLD) {
+    baseTier = 0;
+  } else if (contrabandValue < CONSTANTS.PIRATE_RAIDER_THRESHOLD) {
+    baseTier = 1;
+  } else {
+    baseTier = 2;
+  }
+  
+  // Apply wealth bias (shift toward tougher pirates for rich players)
+  let tierBias = 0;
+  if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_HIGH) tierBias = 2;      // Very rich = +2 tiers
+  else if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_LOW) tierBias = 1;  // Rich = +1 tier
+  
+  const finalTier = Math.min(2, baseTier + tierBias); // Cap at battleship (tier 2)
+  
+  // Return pirate type based on final tier
+  if (finalTier === 0) {
     const roll = Math.random();
     if (roll < 0.70) return PIRATE_TYPES[0]; // scout
     else return PIRATE_TYPES[1]; // raider
-  } else if (contrabandValue < CONSTANTS.PIRATE_RAIDER_THRESHOLD) {
+  } else if (finalTier === 1) {
     const roll = Math.random();
     if (roll < 0.20) return PIRATE_TYPES[0]; // scout
     else if (roll < 0.80) return PIRATE_TYPES[1]; // raider
     else return PIRATE_TYPES[2]; // battleship
-  } else {
+  } else { // finalTier === 2
     const roll = Math.random();
     if (roll < 0.30) return PIRATE_TYPES[1]; // raider
     else return PIRATE_TYPES[2]; // battleship
   }
 }
 
-export function rollCopType(cargoValue, playerBounty = 0) {
+export function rollCopType(cargoValue, playerBounty = 0, netWorth = 0) {
   // Determine base tier from cargo value
   let baseTier = 0; // 0=drone, 1=frigate, 2=cruiser
   
@@ -1232,6 +1259,10 @@ export function rollCopType(cargoValue, playerBounty = 0) {
   let tierBias = 0;
   if (playerBounty >= 2000) tierBias = 2;      // High bounty = +2 tiers
   else if (playerBounty >= 800) tierBias = 1;  // Medium bounty = +1 tier
+  
+  // Apply wealth bias (shift toward tougher cops for rich players)
+  if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_HIGH) tierBias = Math.max(tierBias, 2);
+  else if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_LOW) tierBias = Math.max(tierBias, 1);
   
   const finalTier = Math.min(2, baseTier + tierBias); // Cap at cruiser (tier 2)
   
@@ -1252,9 +1283,9 @@ export function rollCopType(cargoValue, playerBounty = 0) {
   }
 }
 
-export function initiateCombat(player) {
+export function initiateCombat(player, netWorth = 0) {
   const contrabandValue = calculateContrabandValue(player, {});
-  const pirateType = rollPirateType(contrabandValue);
+  const pirateType = rollPirateType(contrabandValue, netWorth);
   const pirateName = randomChoice(PIRATE_NAMES);
   const pirateHull = randomInt(pirateType.hullMin, pirateType.hullMax);
   const maxRounds = randomInt(CONSTANTS.COMBAT_ROUNDS_MIN, CONSTANTS.COMBAT_ROUNDS_MAX);
@@ -1276,9 +1307,9 @@ export function initiateCombat(player) {
   };
 }
 
-export function initiateCopCombat(player) {
+export function initiateCopCombat(player, netWorth = 0) {
   const cargoValue = calculateTotalCargoValue(player, {});
-  const copType = rollCopType(cargoValue, player.reputation?.currentBounty || 0);
+  const copType = rollCopType(cargoValue, player.reputation?.currentBounty || 0, netWorth);
   const copHull = randomInt(copType.hullMin, copType.hullMax);
   const maxRounds = randomInt(CONSTANTS.COMBAT_ROUNDS_MIN, CONSTANTS.COMBAT_ROUNDS_MAX);
   

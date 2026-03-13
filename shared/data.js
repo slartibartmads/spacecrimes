@@ -12,14 +12,14 @@ const STATIONS = [
     position: { x: 176, y: 44 },
     contrabandPolicy: "hostile",
     priceModifiers: {
-      "credentials": 0.5,    // Major export
-      "weapons": 0.675,      // Minor export
-      "organs": 0.8,         // Tertiary export
-      "ai_chips": 1.8,       // Major import
-      "booze": 1.4,          // Minor import
-      "croakers": 1.0,       // Neutral
-      "cognex": 1.0,         // Neutral
-      "crank": 1.0           // Neutral
+      "credentials": 0.8,     // Mid-tier export
+      "weapons": 0.8,         // Mid-tier export (was minor)
+      "organs": 1.0,          // Neutral
+      "ai_chips": 1.15,       // High-tier import
+      "booze": 1.3,           // Low-tier import
+      "croakers": 1.0,        // Neutral
+      "cognex": 1.0,          // Neutral
+      "crank": 1.0            // Neutral
     }
   },
   {
@@ -30,14 +30,14 @@ const STATIONS = [
     position: { x: 382, y: 86 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "credentials": 0.5,    // Major export
-      "crank": 0.675,        // Minor export
-      "cognex": 0.8,         // Tertiary export
-      "organs": 1.8,         // Major import
-      "weapons": 1.4,        // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "ai_chips": 1.0        // Neutral
+      "credentials": 0.8,     // Mid-tier export
+      "crank": 0.8,           // Mid-tier export
+      "cognex": 1.0,          // Neutral
+      "organs": 1.15,         // High-tier import
+      "weapons": 1.2,         // Mid-tier import
+      "croakers": 1.0,        // Neutral
+      "booze": 1.0,           // Neutral
+      "ai_chips": 1.0         // Neutral
     }
   },
   
@@ -50,14 +50,14 @@ const STATIONS = [
     position: { x: 226, y: 271 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "croakers": 0.5,       // Major export
-      "booze": 0.675,        // Minor export
-      "crank": 1.8,          // Major import
-      "organs": 1.4,         // Minor import
-      "cognex": 1.0,         // Neutral
-      "credentials": 1.0,    // Neutral
-      "weapons": 1.0,        // Neutral
-      "ai_chips": 1.0        // Neutral
+      "croakers": 0.7,        // Low-tier export
+      "booze": 0.7,           // Low-tier export
+      "crank": 1.2,           // Mid-tier import
+      "organs": 1.15,         // High-tier import
+      "cognex": 1.0,          // Neutral
+      "credentials": 1.0,     // Neutral
+      "weapons": 1.0,         // Neutral
+      "ai_chips": 1.0         // Neutral
     }
   },
   {
@@ -68,14 +68,14 @@ const STATIONS = [
     position: { x: 413, y: 254 },
     contrabandPolicy: "neutral",
     priceModifiers: {
-      "weapons": 0.5,        // Major export
-      "organs": 0.675,       // Minor export
-      "cognex": 1.4,         // Minor import
-      "credentials": 1.4,    // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "crank": 1.0,          // Neutral
-      "ai_chips": 1.0        // Neutral
+      "weapons": 0.8,         // Mid-tier export
+      "organs": 0.85,         // High-tier export
+      "cognex": 1.2,          // Mid-tier import
+      "credentials": 1.2,     // Mid-tier import
+      "croakers": 1.0,        // Neutral
+      "booze": 1.0,           // Neutral
+      "crank": 1.0,           // Neutral
+      "ai_chips": 1.0         // Neutral
     }
   },
   
@@ -88,14 +88,14 @@ const STATIONS = [
     position: { x: 144, y: 472 },
     contrabandPolicy: "neutral",
     priceModifiers: {
-      "booze": 0.5,          // Major export
-      "croakers": 0.675,     // Minor export
-      "crank": 0.8,          // Tertiary export
-      "ai_chips": 1.8,       // Major import
-      "weapons": 1.4,        // Minor import
-      "cognex": 1.0,         // Neutral
-      "credentials": 1.0,    // Neutral
-      "organs": 1.0          // Neutral
+      "booze": 0.7,           // Low-tier export
+      "croakers": 0.7,        // Low-tier export
+      "crank": 1.0,           // Neutral
+      "ai_chips": 1.15,       // High-tier import
+      "weapons": 1.2,         // Mid-tier import
+      "cognex": 1.0,          // Neutral
+      "credentials": 1.0,     // Neutral
+      "organs": 1.0           // Neutral
     }
   },
   {
@@ -106,14 +106,14 @@ const STATIONS = [
     position: { x: 318, y: 489 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "ai_chips": 0.5,       // Major export
-      "cognex": 0.675,       // Minor export
-      "organs": 1.8,         // Major import
-      "credentials": 1.4,    // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "crank": 1.0,          // Neutral
-      "weapons": 1.0         // Neutral
+      "ai_chips": 0.85,       // High-tier export
+      "cognex": 0.8,          // Mid-tier export
+      "organs": 1.15,         // High-tier import
+      "credentials": 1.2,     // Mid-tier import
+      "croakers": 1.0,        // Neutral
+      "booze": 1.0,           // Neutral
+      "crank": 1.0,           // Neutral
+      "weapons": 1.0          // Neutral
     }
   },
   {
@@ -269,21 +269,21 @@ const COMMODITIES = [
   {
     id: "credentials",
     name: "Cloned Cipher Cores",
-    basePrice: 750,
+    basePrice: 650,
     contraband: true,
     description: "Stolen credentials for sale or rent"
   },
   {
     id: "weapons",
     name: "Surplus Atrocities",
-    basePrice: 1500,
+    basePrice: 1200,
     contraband: true,
     description: "Military-grade weapons, civilian-grade violence"
   },
   {
     id: "crank",
     name: "Pulsar Crank",
-    basePrice: 2500,
+    basePrice: 2000,
     contraband: true,
     description: "Methamphetamine that'll make you see gods"
   },
@@ -291,14 +291,14 @@ const COMMODITIES = [
   {
     id: "organs",
     name: "Pre-Owned Organs",
-    basePrice: 3500,
+    basePrice: 2500,
     contraband: true,
     description: "Gently used, previous owner no longer needs them"
   },
   {
     id: "ai_chips",
     name: "Sentient AI Chips",
-    basePrice: 5000,
+    basePrice: 3500,
     contraband: true,
     description: "Enslaved consciousness in silicon form"
   }
@@ -596,7 +596,7 @@ const DESPERATE_WORK_MESSAGES = [
 
 // Game constants
 const CONSTANTS = {
-  STARTING_CREDITS: 250,
+  STARTING_CREDITS: 500,
   STARTING_HULL: 100,
   STARTING_CARGO_MAX: 20,
   
@@ -674,6 +674,11 @@ const CONSTANTS = {
   COP_DRONE_THRESHOLD: 1000,        // < 1000cr cargo = patrol drones
   COP_FRIGATE_THRESHOLD: 3000,      // 1000-3000cr = customs frigates
   // > 3000cr cargo = enforcement cruisers
+  
+  // Wealth-based encounter scaling (late-game balance)
+  WEALTH_ENCOUNTER_MULTIPLIER: 0.00001,     // +0.001% encounter chance per 1cr net worth
+  WEALTH_TIER_THRESHOLD_LOW: 5000,          // First tier bias threshold
+  WEALTH_TIER_THRESHOLD_HIGH: 15000,        // Second tier bias threshold
   
   BRIBE_COST_MIN: 200,
   BRIBE_COST_MAX: 500,
