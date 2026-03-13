@@ -614,7 +614,7 @@ const CONSTANTS = {
   BASE_INSPECTION_CHANCE: 0.30,
   INSPECTION_FINE_RATE: 0.50,
   
-  TICK_EVENT_CHANCE: 0.025,                    // 2.5% chance per tick
+  TICK_EVENT_CHANCE: 0.02,                     // 2% chance per tick
   PRICE_DRIFT_RATE: 0.025,                     // Slower drift (was 0.05)
   
   // Transaction spreads (bid-ask spread to prevent pump-and-dump)
