@@ -576,6 +576,7 @@ function renderMap(animateTravel = false) {
   const routesLayer = document.getElementById('routes-layer');
   const stationsLayer = document.getElementById('stations-layer');
   const playersLayer = document.getElementById('players-layer');
+  const markerLayer = document.getElementById('marker-layer');
   
   // If we're currently animating, don't re-render - just update other players
   if (isAnimating && !animateTravel) {
@@ -587,6 +588,7 @@ function renderMap(animateTravel = false) {
     routesLayer.innerHTML = '';
     stationsLayer.innerHTML = '';
     playersLayer.innerHTML = '';
+    markerLayer.innerHTML = '';
   
     // Draw routes
     ROUTES.forEach(route => {
@@ -770,7 +772,7 @@ function renderMap(animateTravel = false) {
         marker.setAttribute('y', station.position.y - 16);
       }
       
-      group.appendChild(marker);
+      markerLayer.appendChild(marker);
     }
     
     // Click to travel
