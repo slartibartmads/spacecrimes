@@ -1113,17 +1113,97 @@ button.combat-urgent:hover:not(:disabled) {
 
 
 
-/* Login screen */
-#login-screen input {
+/* === LOGIN SCREEN === */
+
+#login-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: var(--bg-black);
-  color: var(--text-green);
-  border: 1px solid var(--border-green);
-  font-family: 'Source Code Pro', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
-#login-screen input:focus {
+#login-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+#login-title {
+  font-family: 'Workbench', monospace;
+  font-weight: 400;
+  font-size: clamp(86px, 13vw, 173px);
+  color: var(--text-green);
+  text-shadow: 0 0 20px rgba(23, 215, 115, 0.4);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+#login-form {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 40px;
+  gap: 0;
+}
+
+#login-screen #username-input {
+  width: 165px;
+  background: transparent;
+  color: var(--text-green);
+  border: 1.5px solid var(--text-green);
+  border-right: none;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 0 12px;
   outline: none;
-  border-color: var(--warning-yellow);
+  caret-color: var(--text-green);
+  box-sizing: border-box;
+  vertical-align: top;
+}
+
+#login-screen #username-input::placeholder {
+  color: var(--text-green);
+  opacity: 0.5;
+}
+
+#login-screen #username-input:focus {
+  background: rgba(23, 215, 115, 0.05);
+}
+
+#login-screen #join-btn {
+  width: 71px;
+  background: var(--text-green);
+  color: var(--bg-black);
+  border: 1.5px solid var(--text-green);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  transition: opacity 0.15s;
+  box-sizing: border-box;
+}
+
+#login-screen #join-btn:hover {
+  opacity: 0.85;
+}
+
+#login-error {
+  margin-top: -16px;
+  font-size: 12px;
+  text-align: center;
 }
 
 /* Other players on map - ship markers in grid */

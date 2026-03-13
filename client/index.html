@@ -6,16 +6,16 @@
   <title>SPACECRIMES</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700;900&family=Workbench&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- LOGIN SCREEN -->
-  <div id="login-screen" class="modal-overlay" style="display: flex; align-items: center; justify-content: center;">
-    <div class="modal" style="display: block;">
-      <img src="img/logo.png" alt="Space Crimes Logo" style="max-width: 350px; margin: 0 auto 20px auto; display: block;">
-      <input type="text" id="username-input" placeholder="Name" maxlength="20" style="width: 100%; padding: 8px; margin: 10px 0; font-family: 'Source Code Pro', monospace;">
-      <div class="modal-buttons">
+  <div id="login-screen">
+    <div id="login-content">
+      <h1 id="login-title">SPACECRIMES</h1>
+      <div id="login-form">
+        <input type="text" id="username-input" placeholder="Name" maxlength="20" autocomplete="off" spellcheck="false">
         <button id="join-btn">JOIN</button>
       </div>
       <p id="login-error" class="danger" style="display: none;"></p>

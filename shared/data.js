@@ -333,8 +333,8 @@ const ROUTES = [
   { from: "disruptive_smelting", to: "minor_3" },
   { from: "minor_3", to: "disruptive_smelting" },
   // Disruptive Smelting Solutions ↔ Mäkinen-Tanaka Institute (TOLL)
-  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 250 },
-  { from: "makinen_tanaka", to: "disruptive_smelting", tollFee: 250 },
+  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 125 },
+  { from: "makinen_tanaka", to: "disruptive_smelting", tollFee: 125 },
   // Crimson Anchorage (minor_3) ↔ Relay Prime (minor_10)
   { from: "minor_3", to: "minor_10" },
   { from: "minor_10", to: "minor_3" },
@@ -369,8 +369,8 @@ const ROUTES = [
   { from: "minor_4", to: "minor_6" },
   { from: "minor_6", to: "minor_4" },
   // Fort Attrition ↔ Vice Berth (TOLL)
-  { from: "fort_attrition", to: "vice_berth", tollFee: 250 },
-  { from: "vice_berth", to: "fort_attrition", tollFee: 250 },
+  { from: "fort_attrition", to: "vice_berth", tollFee: 125 },
+  { from: "vice_berth", to: "fort_attrition", tollFee: 125 },
   // The Mattress (cosmobank) ↔ Mäkinen-Tanaka Institute
   { from: "cosmobank", to: "makinen_tanaka" },
   { from: "makinen_tanaka", to: "cosmobank" },
