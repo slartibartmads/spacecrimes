@@ -49,13 +49,22 @@ body {
   grid-area: 2 / 2 / 3 / 3;
 }
 
-#leaderboard-panel {
-  grid-area: 3 / 1 / 4 / 2;
+#bottom-bar {
+  grid-area: 3 / 1 / 4 / 3;
+  display: flex;
+  gap: 2px;
   max-height: 200px;
 }
 
+#leaderboard-panel {
+  flex: 0 0 auto;
+  width: 20%;
+  overflow-y: auto;
+}
+
 #activity-log {
-  grid-area: 3 / 2 / 4 / 3;
+  flex: 1 1 auto;
+  overflow-y: auto;
   max-height: 200px;
 }
 
@@ -502,7 +511,6 @@ button.combat-urgent:hover:not(:disabled) {
   height: 26px;
   position: relative;
   margin: 0;
-  margin-bottom: 15px;
   display: flex;
   align-items: center;
   justify-content: center;

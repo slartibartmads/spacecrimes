@@ -405,6 +405,12 @@ function handlePlayerUpdate(player) {
   renderMap(locationChanged); // Pass flag to trigger animation
   renderPlayersHere(); // Update players here when our location changes
   updateDebugPanel(); // Update debug panel when player state changes
+
+  // Refresh inventory modal if it's currently open
+  const inventoryModal = document.getElementById('inventory-modal');
+  if (inventoryModal && inventoryModal.style.display !== 'none') {
+    showInventoryModal();
+  }
 }
 
 function handleOtherPlayerUpdate(data) {
@@ -1309,7 +1315,7 @@ function renderStatus() {
   const weaponBonus = weaponTier * 5;
   const damageMin = baseDamageMin + weaponBonus;
   const damageMax = baseDamageMax + weaponBonus;
-  document.getElementById('status-damage').textContent = `${damageMin}-${damageMax}`;
+  // status-damage element removed from UI
   
   const cargoUsed = Object.values(playerState.cargo).reduce((sum, cargoData) => {
     // Handle both legacy (number) and new (object) format
