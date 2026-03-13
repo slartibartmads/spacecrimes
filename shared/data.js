@@ -386,8 +386,8 @@ const UPGRADES = [
     baseCost: 250,
     multiplier: 2,
     maxTier: 5,
-    effectPerTier: 10,
-    description: "+10 Cargo Capacity",
+    effectPerTier: 5,
+    description: "+5 Cargo Capacity",
     effectType: 'capacity'
   },
   {
@@ -598,7 +598,7 @@ const DESPERATE_WORK_MESSAGES = [
 const CONSTANTS = {
   STARTING_CREDITS: 500,
   STARTING_HULL: 100,
-  STARTING_CARGO_MAX: 20,
+  STARTING_CARGO_MAX: 5,
   
   // Value-based risk scaling (all cargo is contraband now)
   BASE_PIRATE_CHANCE: 0.05,                    // 5% base chance
