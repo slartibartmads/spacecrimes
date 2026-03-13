@@ -73,9 +73,8 @@ export function getPlayerAttackBonus(player) {
 // === PLAYER STATE CREATION ===
 
 export function createPlayerState(username) {
-  // Start at a safe station (no cop encounters)
-  const safeStations = STATIONS.filter(s => s.contrabandPolicy === 'safe');
-  const startingStation = randomChoice(safeStations);
+  // Start at Caveat Emptor (black market trading hub)
+  const startingStation = STATIONS.find(s => s.id === 'caveat_emptor');
   
   return {
     name: username,
