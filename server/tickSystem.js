@@ -117,9 +117,6 @@ function advanceTick() {
   // Apply event effects to all players
   applyEventEffectsToPlayers(tickResult.newEvent);
   
-  // Decay bounties for all players
-  decayBounties();
-  
   // Reset tick state
   resetTickState();
   
@@ -169,29 +166,6 @@ function applyEventEffectsToPlayers(newEvent) {
     });
   }
 }
-
-/**
- * Decay bounties for all players each tick
- */
-function decayBounties() {
-  const state = getServerState();
-  const BOUNTY_DECAY_PER_TICK = 100;
-  
-  Object.keys(state.players).forEach(socketId => {
-    const player = state.players[socketId];
-    if (player.reputation && player.reputation.currentBounty > 0) {
-      const updatedPlayer = {
-        ...player,
-        reputation: {
-          ...player.reputation,
-          currentBounty: Math.max(0, player.reputation.currentBounty - BOUNTY_DECAY_PER_TICK)
-        }
-      };
-      updatePlayer(socketId, updatedPlayer);
-    }
-  });
-}
-
 
 /**
  * Get time until next possible tick (for client display)

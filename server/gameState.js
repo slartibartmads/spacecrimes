@@ -189,8 +189,7 @@ export function getLeaderboard(limit = 10) {
     name: player.name,
     location: player.location,
     netWorth: calculateNetWorth(player, serverState.markets),
-    credits: player.credits,
-    bounty: player.reputation?.currentBounty || 0
+    credits: player.credits
   }));
   
   // Sort by net worth descending

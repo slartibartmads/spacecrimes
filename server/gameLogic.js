@@ -95,12 +95,8 @@ export function createPlayerState(username) {
     },
     reputation: {
       piracyKills: 0,
-      bountyKills: 0,
-      timesKilled: 0,
-      currentBounty: 0
+      timesKilled: 0
     },
-    lastPvpAttack: 0, // Tick number of last PVP attack
-    pvpCooldowns: {}, // Map of targetSocketId -> tick number
     activeCombat: null,
     lastAction: null,
     connected: true,
@@ -1149,7 +1145,7 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
     };
   }
   
-  // Check for cop encounter at destination (value-based risk + bounty scaling)
+  // Check for cop encounter at destination (value-based risk)
   // Only at hostile or neutral stations (not safe stations)
   if (destinationStation.contrabandPolicy === 'hostile' || destinationStation.contrabandPolicy === 'neutral') {
     const baseCopChance = destinationStation.contrabandPolicy === 'hostile' 
@@ -1172,12 +1168,6 @@ export function travel(player, destinationId, markets = {}, activeEvents = []) {
     if (hasCrackdown) {
       copChance *= CONSTANTS.CRACKDOWN_COP_MULTIPLIER;
       console.log(`[CRACKDOWN] Active at ${destinationStation.name}: cop chance ${copChance.toFixed(3)} (base: ${baseCopChance}, multiplier: ${CONSTANTS.CRACKDOWN_COP_MULTIPLIER}x)`);
-    }
-    
-    // Add bounty risk (bounty hunter scaling)
-    if (newPlayer.reputation && newPlayer.reputation.currentBounty > 0) {
-      const bountyRisk = newPlayer.reputation.currentBounty * 0.00002; // 2% chance per 1000cr bounty
-      copChance += bountyRisk;
     }
     
     copChance = Math.min(copChance, CONSTANTS.MAX_COP_CHANCE);
@@ -1254,14 +1244,10 @@ export function rollCopType(cargoValue, playerBounty = 0, netWorth = 0) {
     baseTier = 2;
   }
   
-  // Apply bounty bias (shift toward tougher cops)
-  let tierBias = 0;
-  if (playerBounty >= 2000) tierBias = 2;      // High bounty = +2 tiers
-  else if (playerBounty >= 800) tierBias = 1;  // Medium bounty = +1 tier
-  
   // Apply wealth bias (shift toward tougher cops for rich players)
-  if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_HIGH) tierBias = Math.max(tierBias, 2);
-  else if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_LOW) tierBias = Math.max(tierBias, 1);
+  let tierBias = 0;
+  if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_HIGH) tierBias = 2;
+  else if (netWorth >= CONSTANTS.WEALTH_TIER_THRESHOLD_LOW) tierBias = 1;
   
   const finalTier = Math.min(2, baseTier + tierBias); // Cap at cruiser (tier 2)
   
@@ -1278,7 +1264,7 @@ export function rollCopType(cargoValue, playerBounty = 0, netWorth = 0) {
   } else { // finalTier === 2
     const roll = Math.random();
     if (roll < 0.30) return COP_TYPES[1]; // frigate
-    else return COP_TYPES[2]; // cruiser (mostly cruisers at high bounty)
+    else return COP_TYPES[2]; // cruiser
   }
 }
 
@@ -1308,7 +1294,7 @@ export function initiateCombat(player, netWorth = 0) {
 
 export function initiateCopCombat(player, netWorth = 0) {
   const cargoValue = calculateTotalCargoValue(player, {});
-  const copType = rollCopType(cargoValue, player.reputation?.currentBounty || 0, netWorth);
+  const copType = rollCopType(cargoValue, 0, netWorth);
   const copHull = randomInt(copType.hullMin, copType.hullMax);
   const maxRounds = randomInt(CONSTANTS.COMBAT_ROUNDS_MIN, CONSTANTS.COMBAT_ROUNDS_MAX);
   
@@ -1328,50 +1314,13 @@ export function initiateCopCombat(player, netWorth = 0) {
   };
 }
 
-export function initiatePvpCombat(attacker, defender) {
-  const maxRounds = randomInt(CONSTANTS.COMBAT_ROUNDS_MIN, CONSTANTS.COMBAT_ROUNDS_MAX);
-  
-  return {
-    enemyType: 'player',
-    opponentSocketId: defender.socketId,
-    opponentName: defender.name,
-    opponentHull: defender.hull,
-    opponentHullMax: defender.hullMax,
-    opponentAttackBonus: getPlayerAttackBonus(defender),
-    currentRound: 1,
-    maxRounds,
-    combatLog: [],
-    pendingLoot: null,
-    resolved: false,
-    outcome: null,
-    // PVP turn tracking
-    attackerAction: null,
-    defenderAction: null,
-    attackerReady: false,
-    defenderReady: false,
-    roundStartTime: Date.now(),  // Track when this round started
-    timeoutTriggered: false       // Track if timeout was triggered
-  };
-}
-
-/**
- * Check if combat round should timeout (20 seconds elapsed)
- */
-export function shouldTimeoutCombat(combatState) {
-  const TIMEOUT_MS = 20000; // 20 seconds
-  if (!combatState || !combatState.roundStartTime) return false;
-  const elapsed = Date.now() - combatState.roundStartTime;
-  return elapsed >= TIMEOUT_MS;
-}
-
 export function resolveCombatRound(player, combatState, action) {
   const newPlayer = deepClone(player);
   const newCombat = deepClone(combatState);
   
   const isCop = newCombat.enemyType === 'cop';
-  const isPvp = newCombat.enemyType === 'player';
-  const enemyHullKey = isCop ? 'copHull' : (isPvp ? 'opponentHull' : 'pirateHull');
-  const enemyName = isCop ? 'cop' : (isPvp ? newCombat.opponentName : 'pirate');
+  const enemyHullKey = isCop ? 'copHull' : 'pirateHull';
+  const enemyName = isCop ? 'cop' : 'pirate';
   
   let logEntry = `--- ROUND ${newCombat.currentRound} ---\n`;
   
@@ -1465,26 +1414,10 @@ export function resolveCombatRound(player, combatState, action) {
     newCombat.resolved = true;
     newCombat.outcome = 'victory';
     
-    if (isPvp) {
-      // PVP victory - loot will be handled by socket handler (needs opponent state)
-      newCombat.combatLog.push(`\nVICTORY! You've defeated ${enemyName}.`);
-      newCombat.combatLog.push(`Prepare to loot their cargo and credits...`);
-    } else if (isCop) {
-      // Cops now drop loot + credits + ADD BOUNTY
+    if (isCop) {
+      // Cops drop loot + credits
       const creditReward = randomInt(CONSTANTS.COP_VICTORY_CREDITS_MIN, CONSTANTS.COP_VICTORY_CREDITS_MAX);
       newPlayer.credits += creditReward;
-      
-      // Add bounty for cop killing (integrate with existing reputation system)
-      const bountyAmount = randomInt(500, 1200);
-      if (!newPlayer.reputation) {
-        newPlayer.reputation = {
-          piracyKills: 0,
-          bountyKills: 0,
-          timesKilled: 0,
-          currentBounty: 0
-        };
-      }
-      newPlayer.reputation.currentBounty = (newPlayer.reputation.currentBounty || 0) + bountyAmount;
       
       // Track cop kills in stats
       if (!newPlayer.stats.copsKilled) {
@@ -1518,7 +1451,6 @@ export function resolveCombatRound(player, combatState, action) {
       };
       
       newCombat.combatLog.push(`\nVICTORY! Seized ${creditReward}cr from enforcement vessel.`);
-      newCombat.combatLog.push(`WANTED! Bounty increased by ${bountyAmount}cr (Total: ${newPlayer.reputation.currentBounty}cr)`);
       if (newCombat.pendingLoot) {
         newCombat.combatLog.push(`Salvage detected: ${newCombat.pendingLoot.amount}x ${newCombat.pendingLoot.commodityName}`);
       }
@@ -1578,186 +1510,6 @@ export function resolveCombatRound(player, combatState, action) {
   return {
     success: true,
     playerState: newPlayer,
-    combatState: newCombat
-  };
-}
-
-/**
- * Resolve a PVP round simultaneously with both players' actions
- * Returns updated states for both attacker and defender
- */
-export function resolvePvpRound(attacker, defender, attackerCombat, attackerAction, defenderAction) {
-  const newAttacker = deepClone(attacker);
-  const newDefender = deepClone(defender);
-  const newCombat = deepClone(attackerCombat);
-  
-  let logEntry = `--- ROUND ${newCombat.currentRound} ---\n`;
-  
-  // Track damage dealt to each player
-  let attackerDamage = 0;
-  let defenderDamage = 0;
-  
-  // Handle special cases first (flee/bribe)
-  let attackerFled = false;
-  let defenderFled = false;
-  
-  // Process flee/bribe actions
-  if (attackerAction === 'flee') {
-    if (Math.random() < CONSTANTS.FLEE_SUCCESS_BASE) {
-      logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.flee_success)}\n`;
-      attackerFled = true;
-    } else {
-      const damage = randomInt(CONSTANTS.FLEE_FAIL_DAMAGE_MIN, CONSTANTS.FLEE_FAIL_DAMAGE_MAX);
-      let damageReduction = 0;
-      if (newAttacker.upgrades.hull) damageReduction += 0.25;
-      if (newAttacker.upgrades.shields) damageReduction += 0.40;
-      attackerDamage += Math.round(damage * (1 - damageReduction));
-      logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.flee_fail)} (-${attackerDamage} hull)\n`;
-    }
-  } else if (attackerAction === 'bribe') {
-    const bribeCost = randomInt(CONSTANTS.BRIBE_COST_MIN, CONSTANTS.BRIBE_COST_MAX);
-    if (Math.random() < CONSTANTS.BRIBE_SUCCESS_CHANCE) {
-      newAttacker.credits -= bribeCost;
-      logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.bribe_success)} (-${bribeCost}cr)\n`;
-      attackerFled = true;
-    } else {
-      newAttacker.credits -= bribeCost;
-      const damage = randomInt(CONSTANTS.ATTACK_DAMAGE_TAKEN_MIN, CONSTANTS.ATTACK_DAMAGE_TAKEN_MAX);
-      let damageReduction = 0;
-      if (newAttacker.upgrades.hull) damageReduction += 0.25;
-      if (newAttacker.upgrades.shields) damageReduction += 0.40;
-      attackerDamage += Math.round(damage * (1 - damageReduction));
-      logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.bribe_fail)} (-${bribeCost}cr, -${attackerDamage} hull)\n`;
-    }
-  }
-  
-  if (defenderAction === 'flee') {
-    if (Math.random() < CONSTANTS.FLEE_SUCCESS_BASE) {
-      logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.flee_success)}\n`;
-      defenderFled = true;
-    } else {
-      const damage = randomInt(CONSTANTS.FLEE_FAIL_DAMAGE_MIN, CONSTANTS.FLEE_FAIL_DAMAGE_MAX);
-      let damageReduction = 0;
-      if (newDefender.upgrades.hull) damageReduction += 0.25;
-      if (newDefender.upgrades.shields) damageReduction += 0.40;
-      defenderDamage += Math.round(damage * (1 - damageReduction));
-      logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.flee_fail)} (-${defenderDamage} hull)\n`;
-    }
-  } else if (defenderAction === 'bribe') {
-    const bribeCost = randomInt(CONSTANTS.BRIBE_COST_MIN, CONSTANTS.BRIBE_COST_MAX);
-    if (Math.random() < CONSTANTS.BRIBE_SUCCESS_CHANCE) {
-      newDefender.credits -= bribeCost;
-      logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.bribe_success)} (-${bribeCost}cr)\n`;
-      defenderFled = true;
-    } else {
-      newDefender.credits -= bribeCost;
-      const damage = randomInt(CONSTANTS.ATTACK_DAMAGE_TAKEN_MIN, CONSTANTS.ATTACK_DAMAGE_TAKEN_MAX);
-      let damageReduction = 0;
-      if (newDefender.upgrades.hull) damageReduction += 0.25;
-      if (newDefender.upgrades.shields) damageReduction += 0.40;
-      defenderDamage += Math.round(damage * (1 - damageReduction));
-      logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.bribe_fail)} (-${bribeCost}cr, -${defenderDamage} hull)\n`;
-    }
-  }
-  
-  // If either player fled successfully, combat ends
-  if (attackerFled || defenderFled) {
-    newCombat.combatLog.push(logEntry);
-    newCombat.resolved = true;
-    newCombat.outcome = 'escaped';
-    
-    newAttacker.hull = Math.max(0, newAttacker.hull - attackerDamage);
-    newDefender.hull = Math.max(0, newDefender.hull - defenderDamage);
-    
-    return {
-      success: true,
-      attacker: newAttacker,
-      defender: newDefender,
-      combatState: newCombat
-    };
-  }
-  
-  // Calculate simultaneous attack/defend damage
-  const attackerWeaponBonus = getPlayerAttackBonus(newAttacker);
-  const defenderWeaponBonus = getPlayerAttackBonus(newDefender);
-  
-  // Attacker's action against defender
-  if (attackerAction === 'attack') {
-    const baseDamage = randomInt(CONSTANTS.ATTACK_DAMAGE_MIN, CONSTANTS.ATTACK_DAMAGE_MAX);
-    const damage = baseDamage + attackerWeaponBonus;
-    defenderDamage += damage;
-    logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.attack_hit)} (-${damage} to ${newDefender.name})\n`;
-  } else if (attackerAction === 'defend') {
-    const damage = randomInt(CONSTANTS.DEFEND_DAMAGE_MIN, CONSTANTS.DEFEND_DAMAGE_MAX);
-    defenderDamage += damage;
-    logEntry += `${newAttacker.name} ${randomChoice(COMBAT_FLAVOR.defend_chip)} (-${damage} to ${newDefender.name})\n`;
-  }
-  
-  // Defender's action against attacker
-  if (defenderAction === 'attack') {
-    const baseDamage = randomInt(CONSTANTS.ATTACK_DAMAGE_MIN, CONSTANTS.ATTACK_DAMAGE_MAX);
-    const damage = baseDamage + defenderWeaponBonus;
-    attackerDamage += damage;
-    logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.attack_hit)} (-${damage} to ${newAttacker.name})\n`;
-  } else if (defenderAction === 'defend') {
-    const damage = randomInt(CONSTANTS.DEFEND_DAMAGE_MIN, CONSTANTS.DEFEND_DAMAGE_MAX);
-    attackerDamage += damage;
-    logEntry += `${newDefender.name} ${randomChoice(COMBAT_FLAVOR.defend_chip)} (-${damage} to ${newAttacker.name})\n`;
-  }
-  
-  // Apply damage with upgrade bonuses
-  let attackerDamageReduction = 0;
-  if (newAttacker.upgrades.hull) attackerDamageReduction += 0.25;
-  if (newAttacker.upgrades.shields) attackerDamageReduction += 0.40;
-  attackerDamage = Math.round(attackerDamage * (1 - attackerDamageReduction));
-  
-  let defenderDamageReduction = 0;
-  if (newDefender.upgrades.hull) defenderDamageReduction += 0.25;
-  if (newDefender.upgrades.shields) defenderDamageReduction += 0.40;
-  defenderDamage = Math.round(defenderDamage * (1 - defenderDamageReduction));
-  
-  newAttacker.hull = Math.max(0, newAttacker.hull - attackerDamage);
-  newDefender.hull = Math.max(0, newDefender.hull - defenderDamage);
-  
-  // Update combat state with defender's current hull
-  newCombat.opponentHull = newDefender.hull;
-  
-  newCombat.combatLog.push(logEntry);
-  
-  // Check for victory/defeat
-  if (newDefender.hull <= 0 && newAttacker.hull > 0) {
-    newCombat.combatLog.push(randomChoice(COMBAT_FLAVOR.victory));
-    newCombat.combatLog.push(`\nVICTORY! You've defeated ${newDefender.name}.`);
-    newCombat.combatLog.push(`Prepare to loot their cargo and credits...`);
-    newCombat.resolved = true;
-    newCombat.outcome = 'victory';
-  } else if (newAttacker.hull <= 0 && newDefender.hull > 0) {
-    newCombat.combatLog.push(randomChoice(COMBAT_FLAVOR.defeat));
-    newCombat.resolved = true;
-    newCombat.outcome = 'defeat';
-  } else if (newAttacker.hull <= 0 && newDefender.hull <= 0) {
-    // Both died - mutual destruction (defender wins by default in PVP)
-    newCombat.combatLog.push("MUTUAL DESTRUCTION! Both ships are destroyed!");
-    newCombat.resolved = true;
-    newCombat.outcome = 'defeat';
-  }
-  
-  if (!newCombat.resolved) {
-    newCombat.currentRound++;
-    // Reset turn tracking for next round
-    newCombat.attackerAction = null;
-    newCombat.defenderAction = null;
-    newCombat.attackerReady = false;
-    newCombat.defenderReady = false;
-    // Reset timeout tracking for new round
-    newCombat.roundStartTime = Date.now();
-    newCombat.timeoutTriggered = false;
-  }
-  
-  return {
-    success: true,
-    attacker: newAttacker,
-    defender: newDefender,
     combatState: newCombat
   };
 }
@@ -1954,11 +1706,6 @@ export function respawn(player) {
   newPlayer.upgrades = { cargo: 0, hull: 0, weapon: 0 };
   newPlayer.location = randomStation.id;
   newPlayer.activeCombat = null;
-  
-  // Void bounty on death (reset to 0)
-  if (newPlayer.reputation) {
-    newPlayer.reputation.currentBounty = 0;
-  }
   
   // Preserve bank account balance (death protection)
   // Bank account is NOT reset on respawn - banked credits are safe
@@ -2165,111 +1912,5 @@ export function calculateNetWorth(player, markets) {
   return Math.round(worth) || 0;
 }
 
-// === PVP HELPER FUNCTIONS ===
 
-export function handlePvpVictory(attacker, defender, markets) {
-  const newAttacker = deepClone(attacker);
-  const newDefender = deepClone(defender);
-  
-  // Calculate loot
-  const stolenCredits = Math.floor(defender.credits * 0.2); // 20% of credits
-  const cargoLootPercent = randomInt(30, 50) / 100; // 30-50% of cargo
-  const stolenCargo = {};
-  let stolenCargoValue = 0;
-  
-  // Steal random cargo items
-  Object.keys(defender.cargo).forEach(commodityId => {
-    const quantity = defender.cargo[commodityId];
-    const stolenAmount = Math.floor(quantity * cargoLootPercent);
-    if (stolenAmount > 0) {
-      stolenCargo[commodityId] = stolenAmount;
-      // Calculate value for activity log
-      const currentStation = STATIONS.find(s => s.id === defender.location);
-      const stationMarket = markets[currentStation.id];
-      const commodityMarket = stationMarket ? stationMarket[commodityId] : null;
-      if (commodityMarket) {
-        const price = commodityMarket.currentPrice;
-        stolenCargoValue += stolenAmount * price;
-      }
-    }
-  });
-  
-  // Apply loot to attacker
-  newAttacker.credits += stolenCredits;
-  Object.keys(stolenCargo).forEach(commodityId => {
-    if (!newAttacker.cargo[commodityId]) {
-      newAttacker.cargo[commodityId] = 0;
-    }
-    newAttacker.cargo[commodityId] += stolenCargo[commodityId];
-    newAttacker.cargoUsed += stolenCargo[commodityId];
-  });
-  
-  // Update attacker reputation
-  newAttacker.reputation.piracyKills++;
-  newAttacker.reputation.currentBounty += 500; // Base bounty for attacking
-  if (defender.hull <= 0) {
-    newAttacker.reputation.currentBounty += 1000; // Additional for kill
-  }
-  
-  // Update defender state
-  newDefender.credits -= stolenCredits;
-  Object.keys(stolenCargo).forEach(commodityId => {
-    newDefender.cargo[commodityId] -= stolenCargo[commodityId];
-    newDefender.cargoUsed -= stolenCargo[commodityId];
-    if (newDefender.cargo[commodityId] <= 0) {
-      delete newDefender.cargo[commodityId];
-    }
-  });
-  
-  // Defender takes damage but doesn't die/respawn from PVP
-  if (newDefender.hull <= 0) {
-    newDefender.hull = 1; // Leave them alive with 1 hull
-    newDefender.reputation.timesKilled++;
-  }
-  
-  // Clear combat state for both players
-  newAttacker.activeCombat = null;
-  newDefender.activeCombat = null;
-  
-  return {
-    attacker: newAttacker,
-    defender: newDefender,
-    loot: {
-      credits: stolenCredits,
-      cargo: stolenCargo,
-      cargoValue: stolenCargoValue
-    }
-  };
-}
-
-export function handlePvpDefeat(attacker, defender) {
-  // Attacker loses - they face full death penalty
-  const newAttacker = deepClone(attacker);
-  const newDefender = deepClone(defender);
-  
-  // Attacker takes damage but we handle death separately via checkDeath()
-  // Make sure defender doesn't have negative hull
-  if (newDefender.hull <= 0) {
-    newDefender.hull = 1; // Leave them alive with 1 hull
-    newDefender.reputation.timesKilled++;
-  }
-  
-  // Defender gets bounty reward if attacker had one
-  if (attacker.reputation.currentBounty >= 1000) {
-    const bountyReward = Math.floor(attacker.reputation.currentBounty * 0.5);
-    newDefender.credits += bountyReward;
-    newDefender.reputation.bountyKills++;
-    newDefender.reputation.currentBounty = Math.max(0, newDefender.reputation.currentBounty - 200);
-  }
-  
-  // Clear combat state for both players
-  newAttacker.activeCombat = null;
-  newDefender.activeCombat = null;
-  
-  return {
-    attacker: newAttacker,
-    defender: newDefender,
-    bountyReward: attacker.reputation.currentBounty >= 1000 ? Math.floor(attacker.reputation.currentBounty * 0.5) : 0
-  };
-}
 

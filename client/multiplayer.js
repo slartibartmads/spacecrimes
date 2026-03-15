@@ -102,60 +102,6 @@ export function initMultiplayer(serverUrl = 'http://localhost:3000') {
     }
   });
   
-  // PVP events
-  socket.on('pvpCombatStarted', (data) => {
-    playerState.activeCombat = data.combat;
-    if (callbacks.onCombatEncounter) {
-      callbacks.onCombatEncounter(data.combat);
-    }
-  });
-  
-  socket.on('pvpDefeated', (data) => {
-    // Notify player they were defeated
-    console.log(`Defeated by ${data.attacker}. Lost ${data.lostCredits}cr`);
-    if (callbacks.onPvpDefeated) {
-      callbacks.onPvpDefeated(data);
-    }
-  });
-  
-  socket.on('pvpVictory', (data) => {
-    // Notify player they won as defender
-    console.log(`Successfully defended against attacker. Bounty: ${data.bountyReward}cr`);
-    if (callbacks.onPvpVictory) {
-      callbacks.onPvpVictory(data);
-    }
-  });
-  
-  socket.on('pvpEscaped', (data) => {
-    // Notify that opponent escaped
-    console.log(`${data.escapee} escaped from PVP combat`);
-    if (callbacks.onPvpEscaped) {
-      callbacks.onPvpEscaped(data);
-    }
-  });
-  
-  socket.on('opponentReady', (data) => {
-    // Opponent has submitted their action, we're waiting
-    if (callbacks.onOpponentReady) {
-      callbacks.onOpponentReady(data);
-    }
-  });
-  
-  socket.on('combatRoundResolved', (data) => {
-    // Round resolved, update state
-    playerState = data.playerState;
-    if (callbacks.onCombatRoundResolved) {
-      callbacks.onCombatRoundResolved(data);
-    }
-  });
-  
-  socket.on('combatResolved', (data) => {
-    // Combat completely resolved
-    playerState = data.playerState;
-    if (callbacks.onCombatResolved) {
-      callbacks.onCombatResolved(data);
-    }
-  });
 }
 
 /**
@@ -487,33 +433,6 @@ export function getTickInfo() {
 }
 
 /**
- * Attack player - initiate PVP combat
- */
-export function attackPlayer(targetSocketId) {
-  return new Promise((resolve, reject) => {
-    if (!socket || !connected) {
-      reject(new Error('Not connected to server'));
-      return;
-    }
-    
-    socket.emit('attackPlayer', { targetSocketId }, (response) => {
-      if (response && response.success) {
-        playerState.activeCombat = response.combat;
-        
-        // Trigger combat encounter callback
-        if (callbacks.onCombatEncounter) {
-          callbacks.onCombatEncounter(response.combat);
-        }
-        
-        resolve(response);
-      } else {
-        reject(new Error(response?.error || 'Unknown error'));
-      }
-    });
-  });
-}
-
-/**
  * Clear stuck combat state (debug function)
  */
 export function clearCombat() {
@@ -638,48 +557,6 @@ export function debugFullHull() {
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Failed to restore hull'));
-      }
-    });
-  });
-}
-
-/**
- * Clear player bounty (for debug panel)
- */
-export function debugClearBounty() {
-  return new Promise((resolve, reject) => {
-    if (!socket || !connected) {
-      reject(new Error('Not connected to server'));
-      return;
-    }
-    
-    socket.emit('debug:clearBounty', {}, (response) => {
-      if (response && response.success) {
-        playerState.currentBounty = 0;
-        resolve(response);
-      } else {
-        reject(new Error(response?.error || 'Failed to clear bounty'));
-      }
-    });
-  });
-}
-
-/**
- * Add bounty to player (for debug panel)
- */
-export function debugAddBounty() {
-  return new Promise((resolve, reject) => {
-    if (!socket || !connected) {
-      reject(new Error('Not connected to server'));
-      return;
-    }
-    
-    socket.emit('debug:addBounty', {}, (response) => {
-      if (response && response.success) {
-        playerState = response.playerState;
-        resolve(response);
-      } else {
-        reject(new Error(response?.error || 'Failed to add bounty'));
       }
     });
   });

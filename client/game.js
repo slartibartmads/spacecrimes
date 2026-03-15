@@ -13,7 +13,6 @@ let pendingPath = []; // Multi-hop path queue (array of station IDs, excluding c
 let lastCombatLogLength = 0; // Track combat messages already shown
 let previousLocation = null; // Track previous location for animation
 let isAnimating = false; // Track if marker is currently animating
-let combatCountdownInterval = null; // Track combat countdown timer
 
 // Commodity icon mapping
 const commodityIcons = {
@@ -161,13 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     onPlayerLeft: handlePlayerLeft,
     onCombatEncounter: handleCombatEncounter,
     onInspection: handleInspection,
-    onDeath: handleDeath,
-    onOpponentReady: handleOpponentReady,
-    onCombatRoundResolved: handleCombatRoundResolved,
-    onCombatResolved: handleCombatResolved,
-    onPvpDefeated: handlePvpDefeated,
-    onPvpVictory: handlePvpVictory,
-    onPvpEscaped: handlePvpEscaped
+    onDeath: handleDeath
   });
   
   // Set up login screen
@@ -876,15 +869,6 @@ function renderMap(animateTravel = false) {
     const station = STATIONS.find(s => s.id === stationId);
     if (!station) return;
     
-    // Sort: bounties first, then others
-    players.sort((a, b) => {
-      const aBounty = (a.reputation?.currentBounty || 0) > 0;
-      const bBounty = (b.reputation?.currentBounty || 0) > 0;
-      if (aBounty && !bBounty) return -1;
-      if (!aBounty && bBounty) return 1;
-      return 0;
-    });
-    
     // Grid layout constants
     const SHIP_SIZE = 7;
     const SPACING = 0;
@@ -923,11 +907,9 @@ function renderMap(animateTravel = false) {
       const shipX = rowStartX + (col * (SHIP_SIZE + SPACING));
       const shipY = startY + (row * (SHIP_SIZE + SPACING));
       
-      const hasBounty = (player.reputation?.currentBounty || 0) > 0;
-      
       // Create SVG image element for ship
       const ship = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-      ship.setAttributeNS('http://www.w3.org/1999/xlink', 'href', hasBounty ? 'img/player_ship_red.svg' : 'img/player_ship_yellow.svg');
+      ship.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'img/player_ship_yellow.svg');
       ship.setAttribute('x', shipX);
       ship.setAttribute('y', shipY);
       ship.setAttribute('width', SHIP_SIZE);
@@ -1281,28 +1263,11 @@ function renderPlayersHere() {
     const playerDiv = document.createElement('div');
     playerDiv.style.cssText = 'background: rgba(23, 215, 115, 0.05); padding: 8px; margin: 5px 0; border: 1px solid rgba(23, 215, 115, 0.3); display: flex; justify-content: space-between; align-items: center;';
     
-    // Player name and bounty
     const nameSpan = document.createElement('span');
     nameSpan.style.cssText = 'font-weight: bold; color: #17D773;';
     nameSpan.textContent = player.name;
     
-    if (player.reputation && player.reputation.currentBounty > 0) {
-      const bountySpan = document.createElement('span');
-      bountySpan.style.cssText = 'color: #FF5A41; margin-left: 8px;';
-      bountySpan.textContent = `[BOUNTY: ${player.reputation.currentBounty}cr]`;
-      nameSpan.appendChild(bountySpan);
-    }
-    
     playerDiv.appendChild(nameSpan);
-    
-    // Always show attack button - no safe zones for PVP
-    const attackBtn = document.createElement('button');
-    attackBtn.textContent = 'ATTACK';
-    attackBtn.style.fontSize = '10px';
-    attackBtn.style.padding = '2px 8px';
-    attackBtn.className = 'warning';
-    attackBtn.onclick = () => attackPlayer(player.socketId, player.name);
-    playerDiv.appendChild(attackBtn);
     
     playersHereList.appendChild(playerDiv);
   });
@@ -1399,13 +1364,7 @@ function renderStatus() {
   document.getElementById('status-cargo-max').textContent = playerState.cargoMax;
   document.getElementById('status-tick').textContent = gameState.tick;
   
-  // Show bounty if player has one
-  if (playerState.reputation && playerState.reputation.currentBounty > 0) {
-    document.getElementById('status-bounty').style.display = 'inline';
-    document.getElementById('status-bounty-amount').textContent = playerState.reputation.currentBounty;
-  } else {
-    document.getElementById('status-bounty').style.display = 'none';
-  }
+
 }
 
 function renderLeaderboard() {
@@ -1433,14 +1392,6 @@ async function updateLeaderboard() {
     name.classList.add('leaderboard-name');
     name.textContent = entry.name;
     div.appendChild(name);
-    
-    // Show bounty right after name if they have one
-    if (entry.bounty && entry.bounty >= 1000) {
-      const bounty = document.createElement('span');
-      bounty.style.cssText = 'color: #FF5A41; font-size: 11px; margin-left: 8px;';
-      bounty.textContent = `[${entry.bounty}cr]`;
-      div.appendChild(bounty);
-    }
     
     const worth = document.createElement('span');
     worth.classList.add('leaderboard-credits');
@@ -1636,94 +1587,11 @@ async function handleBankWithdraw(amount) {
 
 // === MODALS (Simplified versions - full implementation needed) ===
 
-// === COMBAT COUNTDOWN FUNCTIONS ===
-
-/**
- * Start countdown timer for PVP combat
- */
-function startCombatCountdown(combat) {
-  // Only start countdown for PVP combat
-  if (combat.enemyType !== 'player') return;
-  
-  // Clear any existing countdown
-  stopCombatCountdown();
-  
-  // Calculate time remaining
-  const timeoutDuration = 20000; // 20 seconds
-  const roundStartTime = combat.roundStartTime;
-  const now = Date.now();
-  const elapsed = now - roundStartTime;
-  let timeRemaining = timeoutDuration - elapsed;
-  
-  // If already timed out, don't start countdown
-  if (timeRemaining <= 0 || combat.timeoutTriggered) {
-    return;
-  }
-  
-  // Update button immediately
-  updateActionButtonCountdowns(Math.ceil(timeRemaining / 1000));
-  
-  // Set up interval to update every second
-  combatCountdownInterval = setInterval(() => {
-    const now = Date.now();
-    const elapsed = now - roundStartTime;
-    timeRemaining = timeoutDuration - elapsed;
-    const secondsLeft = Math.ceil(timeRemaining / 1000);
-    
-    if (secondsLeft <= 0) {
-      stopCombatCountdown();
-      updateActionButtonCountdowns(0);
-    } else {
-      updateActionButtonCountdowns(secondsLeft);
-    }
-  }, 100); // Update every 100ms for smooth countdown
-}
-
-/**
- * Update action button text with countdown
- */
-function updateActionButtonCountdowns(secondsLeft) {
-  const attackBtn = document.getElementById('combat-attack');
-  if (!attackBtn) return;
-  
-  if (secondsLeft > 0) {
-    attackBtn.textContent = `ATTACK (${secondsLeft}s)`;
-    
-    // Add urgent class if less than 5 seconds
-    if (secondsLeft <= 5) {
-      attackBtn.classList.add('combat-urgent');
-    } else {
-      attackBtn.classList.remove('combat-urgent');
-    }
-  } else {
-    attackBtn.textContent = 'ATTACK';
-    attackBtn.classList.remove('combat-urgent');
-  }
-}
-
-/**
- * Stop combat countdown timer
- */
-function stopCombatCountdown() {
-  if (combatCountdownInterval) {
-    clearInterval(combatCountdownInterval);
-    combatCountdownInterval = null;
-  }
-  
-  // Reset attack button text
-  const attackBtn = document.getElementById('combat-attack');
-  if (attackBtn) {
-    attackBtn.textContent = 'ATTACK';
-    attackBtn.classList.remove('combat-urgent');
-  }
-}
-
 function showCombatModal(combat) {
   const isCop = combat.enemyType === 'cop';
-  const isPvp = combat.enemyType === 'player';
-  const enemyName = isCop ? combat.copTypeName : (isPvp ? combat.opponentName : combat.pirateName);
-  const enemyHull = isCop ? combat.copHull : (isPvp ? combat.opponentHull : combat.pirateHull);
-  const enemyDescription = isCop ? combat.copFlavorText : (isPvp ? `PVP COMBAT` : combat.pirateFlavorText);
+  const enemyName = isCop ? combat.copTypeName : combat.pirateName;
+  const enemyHull = isCop ? combat.copHull : combat.pirateHull;
+  const enemyDescription = isCop ? combat.copFlavorText : combat.pirateFlavorText;
   
   addLog(`Combat with ${enemyName}!`, 'danger');
   
@@ -1741,17 +1609,7 @@ function showCombatModal(combat) {
   const lootSection = document.getElementById('combat-loot');
   
   // Set up initial display
-  if (isPvp) {
-    encounterType.textContent = 'PVP COMBAT';
-    enemyLabelSpan.textContent = enemyName.toUpperCase();
-    if (combat.isDefender) {
-      title.textContent = enemyName;
-      description.textContent = `${enemyName} is attacking you!`;
-    } else {
-      title.textContent = enemyName;
-      description.textContent = `You're attacking ${enemyName}`;
-    }
-  } else if (isCop) {
+  if (isCop) {
     encounterType.textContent = 'COP ENCOUNTER';
     enemyLabelSpan.textContent = 'COP';
     title.textContent = enemyName;
@@ -1784,29 +1642,19 @@ function showCombatModal(combat) {
   document.getElementById('combat-bribe').onclick = () => handleCombatAction('bribe');
   document.getElementById('combat-flee').onclick = () => handleCombatAction('flee');
   
-  // Show/hide bribe button (only for NPCs, not PVP)
+  // Show bribe button
   const bribeBtn = document.getElementById('combat-bribe');
   const bribeCostSpan = document.getElementById('bribe-cost');
-  if (isPvp) {
-    bribeBtn.style.display = 'none';
-  } else {
-    bribeBtn.style.display = 'inline-block';
-    // Show estimated bribe cost range
-    bribeCostSpan.textContent = `${CONSTANTS.BRIBE_COST_MIN}-${CONSTANTS.BRIBE_COST_MAX}`;
-  }
+  bribeBtn.style.display = 'inline-block';
+  bribeCostSpan.textContent = `${CONSTANTS.BRIBE_COST_MIN}-${CONSTANTS.BRIBE_COST_MAX}`;
   
-  // Show/hide surrender button based on enemy type (only for cops, not PVP)
+  // Show/hide surrender button based on enemy type (only for cops)
   const surrenderBtn = document.getElementById('combat-surrender');
-  if (isCop && !isPvp) {
+  if (isCop) {
     surrenderBtn.style.display = 'inline-block';
     surrenderBtn.onclick = () => handleCombatAction('surrender');
   } else {
     surrenderBtn.style.display = 'none';
-  }
-  
-  // Start countdown timer for PVP combat
-  if (isPvp) {
-    startCombatCountdown(combat);
   }
   
   // Show modal
@@ -1883,12 +1731,6 @@ async function handleCombatAction(action) {
     const result = await MP.combatAction(action);
     playerState = result.playerState;  // Sync global playerState with fresh data
     
-    // Check if we're waiting for opponent in PVP
-    if (result.waiting) {
-      showWaitingForOpponent();
-      return;
-    }
-    
     updateCombatDisplay(result.combatState);
     renderStatus();  // Update main status bar (hull percentage, etc.)
     
@@ -1903,8 +1745,7 @@ async function handleCombatAction(action) {
 
 function updateCombatDisplay(combat) {
   const isCop = combat.enemyType === 'cop';
-  const isPvp = combat.enemyType === 'player';
-  const enemyHull = isCop ? combat.copHull : (isPvp ? combat.opponentHull : combat.pirateHull);
+  const enemyHull = isCop ? combat.copHull : combat.pirateHull;
   
   const playerHullSpan = document.getElementById('combat-player-hull');
   const pirateHullSpan = document.getElementById('combat-pirate-hull');
@@ -1925,19 +1766,9 @@ function updateCombatDisplay(combat) {
   
   // Check if combat is resolved
   if (combat.resolved) {
-    // Stop countdown when combat ends
-    stopCombatCountdown();
-    
     combatActions.style.display = 'none';
     
-    // PVP victory - special handling
-    if (isPvp && combat.outcome === 'victory') {
-      combatContinue.style.display = 'flex';
-      document.getElementById('combat-continue').onclick = () => {
-        closeCombatModal();
-        addLog('PVP victory! Check activity log for loot details.', 'success');
-      };
-    } else if (combat.outcome === 'victory' && combat.pendingLoot) {
+    if (combat.outcome === 'victory' && combat.pendingLoot) {
       // NPC loot options
       const lootDesc = document.getElementById('loot-description');
       lootDesc.textContent = `Found: ${combat.pendingLoot.amount}x ${combat.pendingLoot.commodityName}`;
@@ -1969,9 +1800,6 @@ function updateCombatDisplay(combat) {
 }
 
 function closeCombatModal() {
-  // Stop any active countdown
-  stopCombatCountdown();
-  
   document.getElementById('combat-modal').style.display = 'none';
   document.getElementById('modal-overlay').style.display = 'none';
   
@@ -2017,128 +1845,6 @@ async function handleRespawn() {
 function closeDeathModal() {
   document.getElementById('death-modal').style.display = 'none';
   document.getElementById('modal-overlay').style.display = 'none';
-}
-
-// === PVP HANDLERS ===
-
-async function attackPlayer(targetSocketId, targetName) {
-  if (!confirm(`Attack ${targetName}? This will initiate PVP combat!`)) {
-    return;
-  }
-  
-  try {
-    const result = await MP.attackPlayer(targetSocketId);
-    addLog(`Attacking ${targetName}!`, 'warning');
-    
-    // Combat modal will be shown by handleCombatEncounter
-  } catch (error) {
-    addLog(error.message, 'danger');
-  }
-}
-
-function showWaitingForOpponent() {
-  const combatActions = document.getElementById('combat-actions');
-  const combatLog = document.getElementById('combat-log');
-  
-  // Disable combat buttons
-  combatActions.style.display = 'none';
-  
-  // Add waiting message to combat log (prepend at top)
-  const waitingMsg = document.createElement('div');
-  waitingMsg.id = 'waiting-message';
-  waitingMsg.style.color = '#ffcc00';
-  waitingMsg.style.fontStyle = 'italic';
-  waitingMsg.style.marginBottom = '4px';
-  waitingMsg.textContent = 'Waiting for opponent to choose their action...';
-  combatLog.insertBefore(waitingMsg, combatLog.firstChild);
-}
-
-function handleOpponentReady(data) {
-  // Opponent chose their action but we're still waiting for resolution
-  const waitingMsg = document.getElementById('waiting-message');
-  if (waitingMsg) {
-    waitingMsg.textContent = `${data.opponentName} is ready! Resolving combat...`;
-  }
-}
-
-function handleCombatRoundResolved(data) {
-  // Remove waiting message
-  const waitingMsg = document.getElementById('waiting-message');
-  if (waitingMsg) {
-    waitingMsg.remove();
-  }
-  
-  // Update display with new combat state
-  playerState = data.playerState;
-  updateCombatDisplay(data.combatState);
-  renderStatus();
-  
-  // Re-enable combat actions if combat isn't resolved
-  if (!data.combatState.resolved) {
-    document.getElementById('combat-actions').style.display = 'flex';
-    
-    // Restart countdown timer for PVP combat (new round)
-    if (data.combatState.enemyType === 'player') {
-      startCombatCountdown(data.combatState);
-    }
-  }
-}
-
-function handleCombatResolved(data) {
-  // Remove waiting message
-  const waitingMsg = document.getElementById('waiting-message');
-  if (waitingMsg) {
-    waitingMsg.remove();
-  }
-  
-  // Update display with final combat state
-  playerState = data.playerState;
-  updateCombatDisplay(data.combatState);
-  renderStatus();
-  
-  if (data.isDead) {
-    handleDeath();
-  }
-}
-
-function handlePvpDefeated(data) {
-  // Update combat state if provided
-  if (data.combatState) {
-    updateCombatDisplay(data.combatState);
-  }
-  
-  // Close combat modal and show defeat message
-  setTimeout(() => {
-    closeCombatModal();
-    addLog(`Defeated by ${data.attacker}! Lost ${data.lostCredits}cr and cargo.`, 'danger');
-  }, 2000);
-}
-
-function handlePvpVictory(data) {
-  // Update combat state if provided
-  if (data.combatState) {
-    updateCombatDisplay(data.combatState);
-  }
-  
-  // Close combat modal and show victory message
-  setTimeout(() => {
-    closeCombatModal();
-    const bountyMsg = data.bountyReward > 0 ? ` and claimed ${data.bountyReward}cr bounty` : '';
-    addLog(`Successfully defended against attacker${bountyMsg}!`, 'success');
-  }, 2000);
-}
-
-function handlePvpEscaped(data) {
-  // Update combat state if provided
-  if (data.combatState) {
-    updateCombatDisplay(data.combatState);
-  }
-  
-  // Close combat modal and show escape message
-  setTimeout(() => {
-    closeCombatModal();
-    addLog(`${data.escapee} escaped from combat.`, 'info');
-  }, 2000);
 }
 
 // === EVENT LOG ===
@@ -2355,43 +2061,6 @@ function initializeDebugPanel() {
       }
     } catch (error) {
       addLog('Failed to restore hull: ' + error.message, 'danger');
-    }
-  });
-  
-  document.getElementById('debug-clear-bounty')?.addEventListener('click', async () => {
-    try {
-      const result = await MP.debugClearBounty();
-      if (result.success) {
-        addLog('Bounty cleared', 'success');
-        
-        // Update UI immediately
-        const updatedState = MP.getPlayerState();
-        if (updatedState) {
-          playerState = updatedState;
-          renderStatus();
-        }
-      }
-    } catch (error) {
-      addLog('Failed to clear bounty: ' + error.message, 'danger');
-    }
-  });
-  
-  document.getElementById('debug-add-bounty')?.addEventListener('click', async () => {
-    try {
-      const result = await MP.debugAddBounty();
-      if (result.success) {
-        addLog('Added 1000cr bounty', 'warning');
-        
-        // Update UI immediately
-        const updatedState = MP.getPlayerState();
-        if (updatedState) {
-          playerState = updatedState;
-          renderStatus();
-          renderMap(); // Refresh map to show red ship marker
-        }
-      }
-    } catch (error) {
-      addLog('Failed to add bounty: ' + error.message, 'danger');
     }
   });
   
