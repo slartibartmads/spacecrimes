@@ -1673,8 +1673,8 @@ export function checkDeath(player) {
 export function respawn(player) {
   const newPlayer = deepClone(player);
   
-  // Respawn at a random station
-  const randomStation = STATIONS[Math.floor(Math.random() * STATIONS.length)];
+  // Respawn at Caveat Emptor (starting station)
+  const respawnStation = STATIONS.find(s => s.id === 'caveat_emptor');
   
   // Check if player died in combat (activeCombat still exists)
   const diedInCombat = newPlayer.activeCombat !== null;
@@ -1704,7 +1704,7 @@ export function respawn(player) {
   newPlayer.cargoUsed = 0;
   newPlayer.cargo = {};
   newPlayer.upgrades = { cargo: 0, hull: 0, weapon: 0 };
-  newPlayer.location = randomStation.id;
+  newPlayer.location = respawnStation.id;
   newPlayer.activeCombat = null;
   
   // Preserve bank account balance (death protection)
@@ -1721,7 +1721,7 @@ export function respawn(player) {
     success: true,
     playerState: newPlayer, 
     gameOver: false, 
-    respawnLocation: randomStation.name 
+    respawnLocation: respawnStation.name 
   };
 }
 

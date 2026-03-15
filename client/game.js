@@ -1711,9 +1711,9 @@ function showDeathModal() {
   const diedInCombat = playerState.activeCombat !== null;
   
   if (diedInCombat) {
-    stats.textContent = `You were destroyed in combat! You will respawn at a random station.`;
+    stats.textContent = `You were destroyed in combat! You will respawn at Caveat Emptor.`;
   } else {
-    stats.textContent = `You will respawn at a random station.`;
+    stats.textContent = `You will respawn at Caveat Emptor.`;
   }
   
   // Set up event handler
@@ -1835,6 +1835,7 @@ function closeInspectionModal() {
 async function handleRespawn() {
   try {
     const result = await MP.respawn();
+    pendingPath = []; // Clear any active route
     closeDeathModal();
     addLog(`Respawned at ${result.respawnLocation}`, 'warning');
   } catch (error) {
