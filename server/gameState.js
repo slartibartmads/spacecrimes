@@ -19,9 +19,6 @@ import { createInitialMarkets, addInitialAnomalies, calculateNetWorth } from './
 
 let serverState = null;
 
-/**
- * Initialize server state
- */
 export function initializeServerState() {
   const { markets, stationInventories, minorStationModifiers } = createInitialMarkets();
   const tick = 0;
@@ -34,11 +31,13 @@ export function initializeServerState() {
     activeEvents,
     tick,
     players: {},
+    socketToPlayer: {},
     recentActivity: [],
     tickState: {
       lastTickTime: Date.now(),
       playersTraveledThisTick: new Set()
-    }
+    },
+    marketPressure: {}
   };
   
   console.log('Server state initialized');
@@ -58,38 +57,72 @@ export function getServerState() {
 /**
  * Add a player to server state
  */
-export function addPlayer(socketId, playerState) {
+export function addPlayer(socketId, playerId, playerState) {
   if (!serverState) {
     throw new Error('Server state not initialized');
   }
   
-  serverState.players[socketId] = {
+  serverState.players[playerId] = {
     ...playerState,
+    playerId,
     socketId,
+    connected: true,
     connectedAt: Date.now(),
     lastActionTime: Date.now()
   };
   
-  console.log(`Player added: ${playerState.name} (${socketId})`);
-  return serverState.players[socketId];
+  serverState.socketToPlayer[socketId] = playerId;
+  
+  console.log(`Player added: ${playerState.name} (${playerId}, socket: ${socketId})`);
+  return serverState.players[playerId];
 }
 
 /**
  * Remove a player from server state
  */
-export function removePlayer(socketId) {
+export function markPlayerDisconnected(socketId) {
   if (!serverState) {
     throw new Error('Server state not initialized');
   }
   
-  const player = serverState.players[socketId];
+  const playerId = serverState.socketToPlayer[socketId];
+  if (!playerId) return;
+  
+  const player = serverState.players[playerId];
   if (player) {
-    console.log(`Player removed: ${player.name} (${socketId})`);
-    delete serverState.players[socketId];
-    
-    // Remove from tick tracking
-    serverState.tickState.playersTraveledThisTick.delete(socketId);
+    player.connected = false;
+    player.disconnectedAt = Date.now();
+    console.log(`Player disconnected: ${player.name} (${playerId})`);
   }
+  
+  delete serverState.socketToPlayer[socketId];
+  serverState.tickState.playersTraveledThisTick.delete(socketId);
+}
+
+export function reconnectPlayer(playerId, newSocketId) {
+  if (!serverState) {
+    throw new Error('Server state not initialized');
+  }
+  
+  const player = serverState.players[playerId];
+  if (!player) return null;
+  
+  player.socketId = newSocketId;
+  player.connected = true;
+  player.reconnectedAt = Date.now();
+  delete player.disconnectedAt;
+  
+  serverState.socketToPlayer[newSocketId] = playerId;
+  
+  console.log(`Player reconnected: ${player.name} (${playerId}, socket: ${newSocketId})`);
+  return player;
+}
+
+export function getPlayerByPlayerId(playerId) {
+  if (!serverState) {
+    throw new Error('Server state not initialized');
+  }
+  return serverState.players[playerId] || null;
 }
 
 /**
@@ -99,7 +132,9 @@ export function getPlayer(socketId) {
   if (!serverState) {
     throw new Error('Server state not initialized');
   }
-  return serverState.players[socketId];
+  const playerId = serverState.socketToPlayer[socketId];
+  if (!playerId) return null;
+  return serverState.players[playerId];
 }
 
 /**
@@ -110,17 +145,18 @@ export function updatePlayer(socketId, updates) {
     throw new Error('Server state not initialized');
   }
   
-  if (!serverState.players[socketId]) {
+  const playerId = serverState.socketToPlayer[socketId];
+  if (!playerId || !serverState.players[playerId]) {
     throw new Error(`Player not found: ${socketId}`);
   }
   
-  serverState.players[socketId] = {
-    ...serverState.players[socketId],
+  serverState.players[playerId] = {
+    ...serverState.players[playerId],
     ...updates,
     lastActionTime: Date.now()
   };
   
-  return serverState.players[socketId];
+  return serverState.players[playerId];
 }
 
 /**
@@ -154,6 +190,13 @@ export function incrementTick() {
   return serverState.tick;
 }
 
+export function getCurrentTick() {
+  if (!serverState) {
+    throw new Error('Server state not initialized');
+  }
+  return serverState.tick;
+}
+
 /**
  * Add activity to recent activity feed
  */
@@ -182,9 +225,11 @@ export function getLeaderboard(limit = 10) {
     throw new Error('Server state not initialized');
   }
   
-  const players = Object.values(serverState.players);
+  const connectedPlayerIds = Object.values(serverState.socketToPlayer);
+  const players = connectedPlayerIds
+    .map(playerId => serverState.players[playerId])
+    .filter(p => p);
   
-  // Calculate net worth for each player using proper function
   const playersWithNetWorth = players.map(player => ({
     name: player.name,
     location: player.location,
@@ -193,7 +238,6 @@ export function getLeaderboard(limit = 10) {
     bounty: player.reputation?.currentBounty || 0
   }));
   
-  // Sort by net worth descending
   playersWithNetWorth.sort((a, b) => b.netWorth - a.netWorth);
   
   return playersWithNetWorth.slice(0, limit);
@@ -203,11 +247,12 @@ export function getLeaderboard(limit = 10) {
  * Get public player info (visible to other players)
  */
 export function getPublicPlayerInfo(socketId) {
-  const player = serverState.players[socketId];
+  const player = getPlayer(socketId);
   if (!player) return null;
   
   return {
     socketId,
+    playerId: player.playerId,
     name: player.name,
     location: player.location,
     credits: player.credits,
@@ -229,7 +274,7 @@ export function getAllPublicPlayerInfo() {
     throw new Error('Server state not initialized');
   }
   
-  return Object.keys(serverState.players).map(socketId => 
+  return Object.keys(serverState.socketToPlayer).map(socketId => 
     getPublicPlayerInfo(socketId)
   ).filter(p => p !== null);
 }
@@ -273,10 +318,10 @@ export function haveAllPlayersTraveled() {
     throw new Error('Server state not initialized');
   }
   
-  const activePlayers = Object.keys(serverState.players);
-  if (activePlayers.length === 0) return false;
+  const activeSocketIds = Object.keys(serverState.socketToPlayer);
+  if (activeSocketIds.length === 0) return false;
   
-  return activePlayers.every(socketId => 
+  return activeSocketIds.every(socketId => 
     serverState.tickState.playersTraveledThisTick.has(socketId)
   );
 }
@@ -298,5 +343,74 @@ export function getActivePlayerCount() {
   if (!serverState) {
     throw new Error('Server state not initialized');
   }
-  return Object.keys(serverState.players).length;
+  return Object.keys(serverState.socketToPlayer).length;
+}
+
+export function recordMarketPressure(stationId, commodityId, pressure, tick) {
+  if (!serverState) {
+    throw new Error('Server state not initialized');
+  }
+  
+  if (!serverState.marketPressure[stationId]) {
+    serverState.marketPressure[stationId] = {};
+  }
+  if (!serverState.marketPressure[stationId][commodityId]) {
+    serverState.marketPressure[stationId][commodityId] = { tickData: {} };
+  }
+  
+  const currentPressure = serverState.marketPressure[stationId][commodityId].tickData[tick] || 0;
+  serverState.marketPressure[stationId][commodityId].tickData[tick] = currentPressure + pressure;
+}
+
+export function getMarketPressure(stationId, commodityId, currentTick, windowSize = 10) {
+  if (!serverState || !serverState.marketPressure[stationId] || !serverState.marketPressure[stationId][commodityId]) {
+    return 0;
+  }
+  
+  const tickData = serverState.marketPressure[stationId][commodityId].tickData;
+  let total = 0;
+  
+  for (const tick in tickData) {
+    if (parseInt(tick) > currentTick - windowSize) {
+      total += tickData[tick];
+    }
+  }
+  
+  return total;
+}
+
+export function getAllMarketPressure(currentTick, windowSize = 10) {
+  if (!serverState) {
+    return {};
+  }
+  
+  const result = {};
+  
+  for (const stationId in serverState.marketPressure) {
+    result[stationId] = {};
+    for (const commodityId in serverState.marketPressure[stationId]) {
+      result[stationId][commodityId] = getMarketPressure(stationId, commodityId, currentTick, windowSize);
+    }
+  }
+  
+  return result;
+}
+
+export function pruneMarketPressure(currentTick, windowSize = 10) {
+  if (!serverState) {
+    return;
+  }
+  
+  const cutoffTick = currentTick - windowSize;
+  
+  for (const stationId in serverState.marketPressure) {
+    for (const commodityId in serverState.marketPressure[stationId]) {
+      const tickData = serverState.marketPressure[stationId][commodityId].tickData;
+      for (const tick in tickData) {
+        if (parseInt(tick) <= cutoffTick) {
+          delete tickData[tick];
+        }
+      }
+    }
+  }
 }

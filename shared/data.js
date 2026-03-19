@@ -2,8 +2,7 @@
 // All stations, commodities, routes, and upgrades
 
 const STATIONS = [
-  // === MAJOR STATIONS (6) ===
-  // INNER SYSTEM - High enforcement, central hub
+  // === MAJOR STATIONS (5) ===
   {
     id: "fort_attrition",
     name: "Fort Attrition",
@@ -12,14 +11,14 @@ const STATIONS = [
     position: { x: 176, y: 44 },
     contrabandPolicy: "hostile",
     priceModifiers: {
-      "credentials": 0.5,    // Major export
-      "weapons": 0.675,      // Minor export
-      "organs": 0.8,         // Tertiary export
-      "ai_chips": 1.8,       // Major import
-      "booze": 1.4,          // Minor import
-      "croakers": 1.0,       // Neutral
-      "cognex": 1.0,         // Neutral
-      "crank": 1.0           // Neutral
+      "credentials": 0.5,
+      "weapons": 0.675,
+      "booze": 0.5,
+      "ai_chips": 0.675,
+      "croakers": 1.5,
+      "cognex": 1.4,
+      "crank": 1.8,
+      "organs": 1.6
     }
   },
   {
@@ -30,18 +29,16 @@ const STATIONS = [
     position: { x: 382, y: 86 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "credentials": 0.5,    // Major export
-      "crank": 0.675,        // Minor export
-      "cognex": 0.8,         // Tertiary export
-      "organs": 1.8,         // Major import
-      "weapons": 1.4,        // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "ai_chips": 1.0        // Neutral
+      "credentials": 0.5,
+      "croakers": 0.675,
+      "cognex": 0.5,
+      "crank": 0.675,
+      "booze": 1.5,
+      "weapons": 1.4,
+      "organs": 1.8,
+      "ai_chips": 1.6
     }
   },
-  
-  // MID SYSTEM - Mixed enforcement, industrial
   {
     id: "vice_berth",
     name: "Vice Berth",
@@ -50,52 +47,14 @@ const STATIONS = [
     position: { x: 226, y: 271 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "croakers": 0.5,       // Major export
-      "booze": 0.675,        // Minor export
-      "crank": 1.8,          // Major import
-      "organs": 1.4,         // Minor import
-      "cognex": 1.0,         // Neutral
-      "credentials": 1.0,    // Neutral
-      "weapons": 1.0,        // Neutral
-      "ai_chips": 1.0        // Neutral
-    }
-  },
-  {
-    id: "disruptive_smelting",
-    name: "Disruptive Smelting Solutions",
-    type: "industrial",
-    description: "Industrial mining and refining. Rough crowd, corporate management.",
-    position: { x: 413, y: 254 },
-    contrabandPolicy: "neutral",
-    priceModifiers: {
-      "weapons": 0.5,        // Major export
-      "organs": 0.675,       // Minor export
-      "cognex": 1.4,         // Minor import
-      "credentials": 1.4,    // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "crank": 1.0,          // Neutral
-      "ai_chips": 1.0        // Neutral
-    }
-  },
-  
-  // OUTER SYSTEM - Lawless frontier
-  {
-    id: "nuevo_eden",
-    name: "Nuevo Eden",
-    type: "agricultural",
-    description: "Agricultural colony. Wholesome veneer, thriving drug trade underneath.",
-    position: { x: 144, y: 472 },
-    contrabandPolicy: "neutral",
-    priceModifiers: {
-      "booze": 0.5,          // Major export
-      "croakers": 0.675,     // Minor export
-      "crank": 0.8,          // Tertiary export
-      "ai_chips": 1.8,       // Major import
-      "weapons": 1.4,        // Minor import
-      "cognex": 1.0,         // Neutral
-      "credentials": 1.0,    // Neutral
-      "organs": 1.0          // Neutral
+      "croakers": 0.5,
+      "booze": 0.675,
+      "organs": 0.5,
+      "weapons": 0.675,
+      "cognex": 1.5,
+      "credentials": 1.4,
+      "crank": 1.8,
+      "ai_chips": 1.6
     }
   },
   {
@@ -106,14 +65,14 @@ const STATIONS = [
     position: { x: 318, y: 489 },
     contrabandPolicy: "safe",
     priceModifiers: {
-      "ai_chips": 0.5,       // Major export
-      "cognex": 0.675,       // Minor export
-      "organs": 1.8,         // Major import
-      "credentials": 1.4,    // Minor import
-      "croakers": 1.0,       // Neutral
-      "booze": 1.0,          // Neutral
-      "crank": 1.0,          // Neutral
-      "weapons": 1.0         // Neutral
+      "ai_chips": 0.5,
+      "cognex": 0.675,
+      "crank": 0.5,
+      "organs": 0.675,
+      "credentials": 1.5,
+      "weapons": 1.4,
+      "booze": 1.8,
+      "croakers": 1.6
     }
   },
   {
@@ -123,35 +82,16 @@ const STATIONS = [
     description: "Secure vault station. Store your credits safely... for a small fee.",
     position: { x: 490, y: 380 },
     contrabandPolicy: "safe",
-    priceModifiers: {}  // No commodities traded here
+    priceModifiers: {}
   },
   
-  // === MINOR STATIONS (12) ===
-  // INNER SYSTEM (4 minor stations)
+  // === MINOR STATIONS (5) ===
   {
     id: "minor_8",
     name: "Apex Station",
     type: "minor",
     description: "Small independent outpost",
     position: { x: 369, y: 18 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  {
-    id: "minor_11",
-    name: "Cinder Post",
-    type: "minor",
-    description: "Forgotten waypoint station",
-    position: { x: 109, y: 82 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  {
-    id: "minor_9",
-    name: "Fractured Berth",
-    type: "minor",
-    description: "Damaged but functional dock",
-    position: { x: 456, y: 128 },
     contrabandPolicy: "safe",
     priceModifiers: {}
   },
@@ -164,61 +104,21 @@ const STATIONS = [
     contrabandPolicy: "neutral",
     priceModifiers: {}
   },
-  
-  // MID SYSTEM (4 minor stations)
   {
-    id: "minor_1",
-    name: "Rusted Depot",
+    id: "minor_13",
+    name: "Rust Bucket",
     type: "minor",
-    description: "Aging supply station",
-    position: { x: 95, y: 244 },
+    description: "Decommissioned freighter, now a waystation",
+    position: { x: 100, y: 280 },
     contrabandPolicy: "safe",
     priceModifiers: {}
   },
-  {
-    id: "minor_3",
-    name: "Crimson Anchorage",
-    type: "minor",
-    description: "Blood-stained refueling station",
-    position: { x: 312, y: 246 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  {
-    id: "minor_5",
-    name: "Salvage Haven",
-    type: "minor",
-    description: "Scrappers and outlaws welcome",
-    position: { x: 77, y: 478 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  {
-    id: "minor_7",
-    name: "Scorched Point",
-    type: "minor",
-    description: "Damaged by solar flare, still operational",
-    position: { x: 455, y: 510 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  
-  // OUTER SYSTEM (4 minor stations)
   {
     id: "minor_2",
     name: "Phantom Junction",
     type: "minor",
     description: "Barely shows on scanners",
     position: { x: 293, y: 334 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
-  {
-    id: "minor_4",
-    name: "Void Terminal",
-    type: "minor",
-    description: "Last stop before deep space",
-    position: { x: 211, y: 415 },
     contrabandPolicy: "safe",
     priceModifiers: {}
   },
@@ -230,16 +130,7 @@ const STATIONS = [
     position: { x: 240, y: 529 },
     contrabandPolicy: "safe",
     priceModifiers: {}
-  },
-  {
-    id: "minor_12",
-    name: "Wreck Hub",
-    type: "minor",
-    description: "Built from salvaged ship parts",
-    position: { x: 491, y: 246 },
-    contrabandPolicy: "safe",
-    priceModifiers: {}
-  },
+  }
 ];
 
 const COMMODITIES = [
@@ -305,78 +196,47 @@ const COMMODITIES = [
 ];
 
 const ROUTES = [
-  // Cinder Post (minor_11) ↔ Fort Attrition
-  { from: "minor_11", to: "fort_attrition" },
-  { from: "fort_attrition", to: "minor_11" },
-  // Fort Attrition ↔ Relay Prime (minor_10)
-  { from: "fort_attrition", to: "minor_10" },
-  { from: "minor_10", to: "fort_attrition" },
-  // Fort Attrition ↔ Apex Station (minor_8)
+  // === INNER SYSTEM ===
+  // Fort Attrition ↔ Apex Station
   { from: "fort_attrition", to: "minor_8" },
   { from: "minor_8", to: "fort_attrition" },
-  // Caveat Emptor ↔ Apex Station (minor_8)
-  { from: "caveat_emptor", to: "minor_8" },
+  // Apex Station ↔ Caveat Emptor
   { from: "minor_8", to: "caveat_emptor" },
-  // Caveat Emptor ↔ Relay Prime (minor_10)
+  { from: "caveat_emptor", to: "minor_8" },
+  // Fort Attrition ↔ Relay Prime (TOLL)
+  { from: "fort_attrition", to: "minor_10", tollFee: 125 },
+  { from: "minor_10", to: "fort_attrition", tollFee: 125 },
+  // Caveat Emptor ↔ Relay Prime
   { from: "caveat_emptor", to: "minor_10" },
   { from: "minor_10", to: "caveat_emptor" },
-  // Caveat Emptor ↔ Fractured Berth (minor_9)
-  { from: "caveat_emptor", to: "minor_9" },
-  { from: "minor_9", to: "caveat_emptor" },
-  // Fractured Berth (minor_9) ↔ Wreck Hub (minor_12)
-  { from: "minor_9", to: "minor_12" },
-  { from: "minor_12", to: "minor_9" },
-  // Wreck Hub (minor_12) ↔ Disruptive Smelting Solutions
-  { from: "minor_12", to: "disruptive_smelting" },
-  { from: "disruptive_smelting", to: "minor_12" },
-  // Disruptive Smelting Solutions ↔ Crimson Anchorage (minor_3)
-  { from: "disruptive_smelting", to: "minor_3" },
-  { from: "minor_3", to: "disruptive_smelting" },
-  // Disruptive Smelting Solutions ↔ Mäkinen-Tanaka Institute (TOLL)
-  { from: "disruptive_smelting", to: "makinen_tanaka", tollFee: 125 },
-  { from: "makinen_tanaka", to: "disruptive_smelting", tollFee: 125 },
-  // Crimson Anchorage (minor_3) ↔ Relay Prime (minor_10)
-  { from: "minor_3", to: "minor_10" },
-  { from: "minor_10", to: "minor_3" },
-  // Crimson Anchorage (minor_3) ↔ Phantom Junction (minor_2)
-  { from: "minor_3", to: "minor_2" },
-  { from: "minor_2", to: "minor_3" },
-  // Vice Berth ↔ Rusted Depot (minor_1)
-  { from: "vice_berth", to: "minor_1" },
-  { from: "minor_1", to: "vice_berth" },
-  // Vice Berth ↔ Phantom Junction (minor_2)
+  
+  // === MID SYSTEM ===
+  // Relay Prime ↔ Vice Berth
+  { from: "minor_10", to: "vice_berth" },
+  { from: "vice_berth", to: "minor_10" },
+  // Relay Prime ↔ Phantom Junction (TOLL)
+  { from: "minor_10", to: "minor_2", tollFee: 125 },
+  { from: "minor_2", to: "minor_10", tollFee: 125 },
+  // Vice Berth ↔ Phantom Junction
   { from: "vice_berth", to: "minor_2" },
   { from: "minor_2", to: "vice_berth" },
-  // Rusted Depot (minor_1) ↔ Salvage Haven (minor_5)
-  { from: "minor_1", to: "minor_5" },
-  { from: "minor_5", to: "minor_1" },
-  // Nuevo Eden ↔ Salvage Haven (minor_5)
-  { from: "nuevo_eden", to: "minor_5" },
-  { from: "minor_5", to: "nuevo_eden" },
-  // Nuevo Eden ↔ Void Terminal (minor_4)
-  { from: "nuevo_eden", to: "minor_4" },
-  { from: "minor_4", to: "nuevo_eden" },
-  // Mäkinen-Tanaka Institute ↔ Drifter Nexus (minor_6)
+  // Vice Berth ↔ Rust Bucket
+  { from: "vice_berth", to: "minor_13" },
+  { from: "minor_13", to: "vice_berth" },
+  
+  // === OUTER SYSTEM ===
+  // Phantom Junction ↔ Mäkinen-Tanaka (TOLL - crossing to outer system)
+  { from: "minor_2", to: "makinen_tanaka", tollFee: 125 },
+  { from: "makinen_tanaka", to: "minor_2", tollFee: 125 },
+  // Mäkinen-Tanaka ↔ Drifter Nexus
   { from: "makinen_tanaka", to: "minor_6" },
   { from: "minor_6", to: "makinen_tanaka" },
-  // Mäkinen-Tanaka Institute ↔ Scorched Point (minor_7)
-  { from: "makinen_tanaka", to: "minor_7" },
-  { from: "minor_7", to: "makinen_tanaka" },
-  // Void Terminal (minor_4) ↔ Phantom Junction (minor_2)
-  { from: "minor_4", to: "minor_2" },
-  { from: "minor_2", to: "minor_4" },
-  // Void Terminal (minor_4) ↔ Drifter Nexus (minor_6)
-  { from: "minor_4", to: "minor_6" },
-  { from: "minor_6", to: "minor_4" },
-  // Fort Attrition ↔ Vice Berth (TOLL)
-  { from: "fort_attrition", to: "vice_berth", tollFee: 125 },
-  { from: "vice_berth", to: "fort_attrition", tollFee: 125 },
-  // The Mattress (cosmobank) ↔ Mäkinen-Tanaka Institute
-  { from: "cosmobank", to: "makinen_tanaka" },
+  // Mäkinen-Tanaka ↔ The Mattress
   { from: "makinen_tanaka", to: "cosmobank" },
-  // The Mattress (cosmobank) ↔ Scorched Point (minor_7)
-  { from: "cosmobank", to: "minor_7" },
-  { from: "minor_7", to: "cosmobank" }
+  { from: "cosmobank", to: "makinen_tanaka" },
+  // The Mattress ↔ Phantom Junction
+  { from: "cosmobank", to: "minor_2" },
+  { from: "minor_2", to: "cosmobank" }
 ];
 
 const UPGRADES = [
@@ -386,8 +246,8 @@ const UPGRADES = [
     baseCost: 250,
     multiplier: 2,
     maxTier: 5,
-    effectPerTier: 10,
-    description: "+10 Cargo Capacity",
+    effectPerTier: 5,
+    description: "+5 Cargo Capacity",
     effectType: 'capacity'
   },
   {
@@ -396,8 +256,8 @@ const UPGRADES = [
     baseCost: 300,
     multiplier: 2,
     maxTier: 5,
-    effectPerTier: 20,
-    description: "+20 Shields",
+    effectPerTier: 5,
+    description: "+5 Shields",
     effectType: 'hull'
   },
   {
@@ -406,8 +266,8 @@ const UPGRADES = [
     baseCost: 400,
     multiplier: 2,
     maxTier: 5,
-    effectPerTier: 15,
-    description: "+15 Firepower",
+    effectPerTier: 5,
+    description: "+5 Firepower",
     effectType: 'weapon'
   }
 ];
@@ -597,18 +457,18 @@ const DESPERATE_WORK_MESSAGES = [
 // Game constants
 const CONSTANTS = {
   STARTING_CREDITS: 250,
-  STARTING_HULL: 100,
-  STARTING_CARGO_MAX: 20,
+  STARTING_HULL: 50,
+  STARTING_CARGO_MAX: 5,
   
   // Value-based risk scaling (all cargo is contraband now)
   BASE_PIRATE_CHANCE: 0.05,                    // 5% base chance
   CARGO_VALUE_PIRATE_MULTIPLIER: 0.00003,      // +0.003% per credit of cargo value
   MAX_PIRATE_CHANCE: 0.50,                     // 50% max cap
   
-  BASE_COP_CHANCE_HOSTILE: 0.10,               // 10% base at hostile stations
-  BASE_COP_CHANCE_NEUTRAL: 0.025,              // 2.5% base at neutral (25% of hostile)
-  CARGO_VALUE_COP_MULTIPLIER: 0.00004,         // +0.004% per credit of cargo value
-  MAX_COP_CHANCE: 0.60,                        // 60% max cap
+  BASE_COP_CHANCE_HOSTILE: 0,                // Disabled
+  BASE_COP_CHANCE_NEUTRAL: 0,                 // Disabled
+  CARGO_VALUE_COP_MULTIPLIER: 0,              // Disabled
+  MAX_COP_CHANCE: 0,                          // Disabled
   
   // Legacy inspection constants (will be removed once cop combat is fully implemented)
   BASE_INSPECTION_CHANCE: 0.30,
@@ -624,6 +484,7 @@ const CONSTANTS = {
   PLAYER_BUY_PRICE_INCREASE: 0.04,
   PLAYER_SELL_PRICE_DECREASE: 0.04,
   ADJACENT_PRICE_CHANGE: 0.015,
+  MIN_PRICE_CHANGE: 1,
   
   DEATH_CREDIT_RETENTION: 0.30,
   RESPAWN_SHIP_COST: 500,
@@ -653,7 +514,7 @@ const CONSTANTS = {
   SAFE_PASSAGE_DURATION_MAX: 3,
   
   // Event modifiers
-  CRACKDOWN_COP_MULTIPLIER: 2.5,               // 2.5x cop encounter chance during crackdown
+  CRACKDOWN_COP_MULTIPLIER: 0,                // Disabled (cops disabled)
   
   // Combat - Multi-round system
   COMBAT_ROUNDS_MIN: 2,

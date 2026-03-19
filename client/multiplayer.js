@@ -5,9 +5,50 @@
 let socket = null;
 let connected = false;
 let playerState = null;
-let gameState = null; // markets, events, tick
+let gameState = null;
+let myPlayerId = null;
 
-// Callbacks that game.js will set
+const PLAYER_ID_KEY = 'spacecrimes_player_id';
+
+export function getStoredPlayerId() {
+  try {
+    return localStorage.getItem(PLAYER_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearStoredPlayerId() {
+  try {
+    localStorage.removeItem(PLAYER_ID_KEY);
+  } catch {}
+}
+
+function storePlayerId(playerId) {
+  try {
+    localStorage.setItem(PLAYER_ID_KEY, playerId);
+  } catch {}
+}
+
+function waitForConnection(timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    if (connected) {
+      resolve();
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      reject(new Error('Connection timeout'));
+    }, timeout);
+    
+    socket.once('connect', () => {
+      clearTimeout(timer);
+      connected = true;
+      resolve();
+    });
+  });
+}
+
 let callbacks = {
   onConnected: null,
   onDisconnected: null,
@@ -26,10 +67,12 @@ let callbacks = {
 /**
  * Initialize multiplayer connection
  */
-export function initMultiplayer(serverUrl = 'http://localhost:3000') {
+export function initMultiplayer(serverUrl) {
+  if (!serverUrl) {
+    serverUrl = window.location.origin;
+  }
   socket = io(serverUrl);
   
-  // Connection events
   socket.on('connect', () => {
     console.log('Connected to server');
     connected = true;
@@ -46,6 +89,9 @@ export function initMultiplayer(serverUrl = 'http://localhost:3000') {
   // Game state events
   socket.on('marketUpdate', (data) => {
     gameState.markets = data.markets;
+    if (data.marketPressure) {
+      gameState.marketPressure = data.marketPressure;
+    }
     if (callbacks.onMarketUpdate) {
       callbacks.onMarketUpdate(data.markets);
     }
@@ -60,14 +106,11 @@ export function initMultiplayer(serverUrl = 'http://localhost:3000') {
   });
   
   socket.on('playerUpdate', (data) => {
-    // Update if it's our player
-    if (data.socketId === socket.id) {
-      playerState = data.player;
-      if (callbacks.onPlayerUpdate) {
-        callbacks.onPlayerUpdate(data.player);
-      }
+    const updatePlayerId = data.player?.playerId;
+    if (updatePlayerId === myPlayerId || data.socketId === socket.id) {
+      // Don't overwrite our full state with public info - callback has full state
+      // Just update other players' info
     } else {
-      // Update other players' positions
       if (callbacks.onOtherPlayerUpdate) {
         callbacks.onOtherPlayerUpdate(data);
       }
@@ -78,6 +121,7 @@ export function initMultiplayer(serverUrl = 'http://localhost:3000') {
     gameState.tick = data.tick;
     gameState.markets = data.markets;
     gameState.activeEvents = data.activeEvents;
+    gameState.marketPressure = data.marketPressure || {};
     
     if (callbacks.onTick) {
       callbacks.onTick(data);
@@ -178,12 +222,18 @@ export function joinGame(username) {
     socket.emit('join', { username }, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        myPlayerId = response.playerId;
         gameState = {
           markets: response.markets,
           activeEvents: response.activeEvents,
           tick: response.tick,
-          players: response.players
+          players: response.players,
+          marketPressure: response.marketPressure || {}
         };
+        
+        if (response.playerId) {
+          storePlayerId(response.playerId);
+        }
         
         if (callbacks.onConnected) {
           callbacks.onConnected(playerState, gameState);
@@ -194,6 +244,43 @@ export function joinGame(username) {
         reject(new Error(response.error));
       }
     });
+  });
+}
+
+export function reconnect(playerId) {
+  console.log('Attempting reconnect with playerId:', playerId);
+  return new Promise((resolve, reject) => {
+    waitForConnection()
+      .then(() => {
+        console.log('Socket connected, sending reconnect event');
+        socket.emit('reconnect', { playerId }, (response) => {
+          console.log('Reconnect response:', response);
+          if (response.success) {
+            playerState = response.playerState;
+            myPlayerId = response.playerId;
+            gameState = {
+              markets: response.markets,
+              activeEvents: response.activeEvents,
+              tick: response.tick,
+              players: response.players,
+              marketPressure: response.marketPressure || {}
+            };
+            
+            if (callbacks.onConnected) {
+              callbacks.onConnected(playerState, gameState);
+            }
+            
+            resolve({ playerState, gameState });
+          } else {
+            clearStoredPlayerId();
+            reject(new Error(response.error));
+          }
+        });
+      })
+      .catch((err) => {
+        console.log('Reconnect wait for connection failed:', err);
+        reject(err);
+      });
   });
 }
 
@@ -215,6 +302,12 @@ export function buyCommodity(commodity, quantity) {
       if (response && response.success) {
         playerState = response.playerState;
         gameState.markets = response.markets;
+        if (response.marketPressure) {
+          gameState.marketPressure = response.marketPressure;
+        }
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         const errorMsg = response?.error || 'Unknown error';
@@ -239,6 +332,12 @@ export function sellCommodity(commodity, quantity) {
       if (response && response.success) {
         playerState = response.playerState;
         gameState.markets = response.markets;
+        if (response.marketPressure) {
+          gameState.marketPressure = response.marketPressure;
+        }
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Unknown error'));
@@ -260,6 +359,9 @@ export function jettisonCargo(commodity, quantity) {
     socket.emit('jettison', { commodity, quantity }, (response) => {
       if (response && response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Unknown error'));
@@ -282,7 +384,10 @@ export function travel(destination) {
       if (response && response.success) {
         playerState = response.playerState;
         
-        // Handle special cases
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
+        
         if (response.pirateEncounter) {
           if (callbacks.onCombatEncounter) {
             callbacks.onCombatEncounter(response.combat);
@@ -318,6 +423,9 @@ export function depositCredits(amount) {
     socket.emit('bank:deposit', { amount }, (response) => {
       if (response && response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Unknown error'));
@@ -339,6 +447,9 @@ export function withdrawCredits(amount) {
     socket.emit('bank:withdraw', { amount }, (response) => {
       if (response && response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Unknown error'));
@@ -355,6 +466,9 @@ export function buyUpgrade(upgradeId) {
     socket.emit('buyUpgrade', { upgradeId }, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));
@@ -363,14 +477,14 @@ export function buyUpgrade(upgradeId) {
   });
 }
 
-/**
- * Repair hull
- */
 export function repairHull() {
   return new Promise((resolve, reject) => {
     socket.emit('repair', {}, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));
@@ -379,14 +493,14 @@ export function repairHull() {
   });
 }
 
-/**
- * Do desperate work
- */
 export function doDesperateWork() {
   return new Promise((resolve, reject) => {
     socket.emit('desperateWork', {}, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));
@@ -395,14 +509,15 @@ export function doDesperateWork() {
   });
 }
 
-/**
- * Combat action
- */
 export function combatAction(action) {
   return new Promise((resolve, reject) => {
     socket.emit('combatAction', { action }, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         
         if (response.isDead && callbacks.onDeath) {
           callbacks.onDeath();
@@ -416,14 +531,14 @@ export function combatAction(action) {
   });
 }
 
-/**
- * Accept loot after combat victory
- */
 export function acceptLoot() {
   return new Promise((resolve, reject) => {
     socket.emit('acceptLoot', {}, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));
@@ -432,14 +547,14 @@ export function acceptLoot() {
   });
 }
 
-/**
- * Inspection action
- */
 export function inspectionAction(action) {
   return new Promise((resolve, reject) => {
     socket.emit('inspectionAction', { action }, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));
@@ -448,14 +563,14 @@ export function inspectionAction(action) {
   });
 }
 
-/**
- * Respawn after death
- */
 export function respawn() {
   return new Promise((resolve, reject) => {
     socket.emit('respawn', {}, (response) => {
       if (response.success) {
         playerState = response.playerState;
+        if (callbacks.onPlayerUpdate) {
+          callbacks.onPlayerUpdate(playerState);
+        }
         resolve(response);
       } else {
         reject(new Error(response.error));

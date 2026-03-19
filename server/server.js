@@ -42,8 +42,8 @@ setupSocketHandlers(io);
 initializeTickSystem(io);
 
 // Start server
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Space Drugwars server running on http://localhost:${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Space Drugwars server running on http://0.0.0.0:${PORT}`);
   console.log(`📊 Game state initialized`);
   console.log(`⏰ Tick system active`);
 });

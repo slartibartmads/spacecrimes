@@ -16,6 +16,8 @@ import {
   CONSTANTS
 } from '../shared/data.js';
 
+import { randomUUID } from 'crypto';
+
 // === UTILITY FUNCTIONS ===
 
 export function randomInt(min, max) {
@@ -73,18 +75,15 @@ export function getPlayerAttackBonus(player) {
 // === PLAYER STATE CREATION ===
 
 export function createPlayerState(username) {
-  // Start at a safe station (no cop encounters)
-  const safeStations = STATIONS.filter(s => s.contrabandPolicy === 'safe');
-  const startingStation = randomChoice(safeStations);
-  
   return {
+    playerId: randomUUID(),
     name: username,
     credits: CONSTANTS.STARTING_CREDITS,
     hull: CONSTANTS.STARTING_HULL,
     hullMax: CONSTANTS.STARTING_HULL,
     cargoMax: CONSTANTS.STARTING_CARGO_MAX,
     cargoUsed: 0,
-    location: startingStation.id,
+    location: 'caveat_emptor',
     cargo: {},
     upgrades: { cargo: 0, hull: 0, weapon: 0 },
     stats: {
@@ -100,8 +99,8 @@ export function createPlayerState(username) {
       timesKilled: 0,
       currentBounty: 0
     },
-    lastPvpAttack: 0, // Tick number of last PVP attack
-    pvpCooldowns: {}, // Map of targetSocketId -> tick number
+    lastPvpAttack: 0,
+    pvpCooldowns: {},
     activeCombat: null,
     lastAction: null,
     connected: true,
@@ -150,31 +149,8 @@ export function createInitialMarkets() {
       // Store for later reference
       minorStationModifiers[station.id] = stationModifiers;
     } else {
-      // Major stations: 6 commodities - prioritize those with meaningful modifiers (not 1.0)
-      const withModifiers = COMMODITIES.filter(c => 
-        station.priceModifiers[c.id] !== undefined && 
-        station.priceModifiers[c.id] !== 1.0
-      );
-      const neutral = COMMODITIES.filter(c => 
-        station.priceModifiers[c.id] === 1.0
-      );
-      
-      // If we have 6+ non-neutral, use top 6 by how far they deviate from 1.0
-      if (withModifiers.length >= 6) {
-        // Sort by deviation from 1.0 (most specialized first)
-        withModifiers.sort((a, b) => {
-          const aDeviation = Math.abs(station.priceModifiers[a.id] - 1.0);
-          const bDeviation = Math.abs(station.priceModifiers[b.id] - 1.0);
-          return bDeviation - aDeviation;
-        });
-        availableCommodities = withModifiers.slice(0, 6);
-      } else {
-        // Use all non-neutral, then fill with random neutral to reach 6
-        const needed = 6 - withModifiers.length;
-        const selectedNeutral = randomSample(neutral, needed);
-        availableCommodities = [...withModifiers, ...selectedNeutral];
-      }
-      
+      // Major stations: ALL commodities
+      availableCommodities = [...COMMODITIES];
       stationModifiers = station.priceModifiers;
     }
     
@@ -188,7 +164,7 @@ export function createInitialMarkets() {
       const variance = 1 + randomFloat(-0.1, 0.1);
       
       markets[station.id][commodity.id] = {
-        currentPrice: Math.round(basePrice * stationModifier * variance),
+        currentPrice: Math.max(1, Math.round(basePrice * stationModifier * variance)),
         supply: "normal",
         demand: "normal",
         variance: variance
@@ -211,7 +187,7 @@ export function addInitialAnomalies(markets, stationInventories, tick) {
     const shortageCommodity = randomChoice(availableShortageCommodities);
     markets[shortageStation.id][shortageCommodity.id].supply = "low";
     markets[shortageStation.id][shortageCommodity.id].currentPrice = 
-      Math.round(markets[shortageStation.id][shortageCommodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
+      Math.max(1, Math.round(markets[shortageStation.id][shortageCommodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT));
     events.push({
       type: "shortage",
       stationId: shortageStation.id,
@@ -229,7 +205,7 @@ export function addInitialAnomalies(markets, stationInventories, tick) {
     const surplusCommodity = randomChoice(availableSurplusCommodities);
     markets[surplusStation.id][surplusCommodity.id].supply = "high";
     markets[surplusStation.id][surplusCommodity.id].currentPrice = 
-      Math.round(markets[surplusStation.id][surplusCommodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
+      Math.max(1, Math.round(markets[surplusStation.id][surplusCommodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT));
     events.push({
       type: "glut",
       stationId: surplusStation.id,
@@ -248,7 +224,7 @@ export function addInitialAnomalies(markets, stationInventories, tick) {
       const surgeCommodity = randomChoice(availableSurgeCommodities);
       markets[surgeStation.id][surgeCommodity.id].demand = "high";
       markets[surgeStation.id][surgeCommodity.id].currentPrice = 
-        Math.round(markets[surgeStation.id][surgeCommodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
+        Math.max(1, Math.round(markets[surgeStation.id][surgeCommodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT));
       events.push({
         type: "surge",
         stationId: surgeStation.id,
@@ -290,22 +266,7 @@ export function processTick(markets, activeEvents, stationInventories, tick) {
     return false; // Remove from activeEvents
   });
 
-  // Price drift toward baseline
-  STATIONS.forEach(station => {
-    COMMODITIES.forEach(commodity => {
-      // Skip if commodity not available at this station
-      const market = newMarkets[station.id]?.[commodity.id];
-      if (!market) return;
-      
-      const basePrice = commodity.basePrice;
-      const stationModifier = station.priceModifiers[commodity.id] || 1.0;
-      const targetPrice = basePrice * stationModifier * market.variance;
-      
-      // Drift 5% toward target
-      const drift = (targetPrice - market.currentPrice) * CONSTANTS.PRICE_DRIFT_RATE;
-      market.currentPrice = Math.round(market.currentPrice + drift);
-    });
-  });
+  // Price drift disabled - prices only change from player activity and events
 
   // Random event (7.5% chance)
   let generatedEvent = null;
@@ -327,35 +288,7 @@ export function processTick(markets, activeEvents, stationInventories, tick) {
 // === EVENT GENERATORS ===
 
 export function generateRandomEvent(markets, activeEvents, stationInventories, tick) {
-  const roll = Math.random();
-  
-  // Weight distribution (must total 1.0):
-  // 0.00-0.20 = Price Surge (20%)
-  // 0.20-0.35 = Shortage (15%)
-  // 0.35-0.50 = Glut (15%)
-  // 0.50-0.68 = Commodity Reroll (18%)
-  // 0.68-0.83 = Price Spike/Drop (15%)
-  // 0.83-0.91 = Station Boom/Recession (8%)
-  // 0.91-0.96 = Security Crackdown (5%)
-  // 0.96-1.00 = Safe Passage (4%)
-  
-  if (roll < 0.20) {
-    return generatePriceSurge(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.35) {
-    return generateShortage(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.50) {
-    return generateGlut(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.68) {
-    return generateCommodityReroll(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.83) {
-    return generatePriceSpikeOrDrop(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.91) {
-    return generateStationBoomOrRecession(markets, activeEvents, stationInventories, tick);
-  } else if (roll < 0.96) {
-    return generateSecurityCrackdown(markets, activeEvents, stationInventories, tick);
-  } else {
-    return generateSafePassage(markets, activeEvents, stationInventories, tick);
-  }
+  return generatePriceSpikeOrDrop(markets, activeEvents, stationInventories, tick);
 }
 
 function generatePriceSurge(markets, activeEvents, stationInventories, tick) {
@@ -368,7 +301,7 @@ function generatePriceSurge(markets, activeEvents, stationInventories, tick) {
   const commodity = randomChoice(availableCommodities);
   markets[station.id][commodity.id].demand = "high";
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURGE_PRICE_MULT));
   
   return {
     event: {
@@ -396,7 +329,7 @@ function generateShortage(markets, activeEvents, stationInventories, tick) {
   const commodity = randomChoice(availableCommodities);
   markets[station.id][commodity.id].supply = "low";
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SHORTAGE_PRICE_MULT));
   
   return {
     event: {
@@ -424,7 +357,7 @@ function generateGlut(markets, activeEvents, stationInventories, tick) {
   const commodity = randomChoice(availableCommodities);
   markets[station.id][commodity.id].supply = "high";
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * CONSTANTS.SURPLUS_PRICE_MULT));
   
   return {
     event: {
@@ -470,7 +403,7 @@ function generateCommodityReroll(markets, activeEvents, stationInventories, tick
     const variance = 1 + randomFloat(-0.1, 0.1);
     
     markets[station.id][commodity.id] = {
-      currentPrice: Math.round(basePrice * modifier * variance),
+      currentPrice: Math.max(1, Math.round(basePrice * modifier * variance)),
       supply: "normal",
       demand: "normal",
       variance: variance
@@ -516,7 +449,7 @@ function generatePriceSpikeOrDrop(markets, activeEvents, stationInventories, tic
     : randomFloat(CONSTANTS.DROP_PRICE_MULT_MIN, CONSTANTS.DROP_PRICE_MULT_MAX);
   
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * multiplier));
   
   const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
   
@@ -552,7 +485,7 @@ function generateStationBoomOrRecession(markets, activeEvents, stationInventorie
   availableIds.forEach(commodityId => {
     if (markets[station.id]?.[commodityId]) {
       markets[station.id][commodityId].currentPrice = 
-        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+        Math.max(1, Math.round(markets[station.id][commodityId].currentPrice * multiplier));
     }
   });
   
@@ -666,7 +599,7 @@ function generatePriceSpike(markets, activeEvents, stationInventories, tick) {
   const multiplier = randomFloat(CONSTANTS.SPIKE_PRICE_MULT_MIN, CONSTANTS.SPIKE_PRICE_MULT_MAX);
   
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * multiplier));
   
   const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
   
@@ -698,7 +631,7 @@ function generatePriceDrop(markets, activeEvents, stationInventories, tick) {
   const multiplier = randomFloat(CONSTANTS.DROP_PRICE_MULT_MIN, CONSTANTS.DROP_PRICE_MULT_MAX);
   
   markets[station.id][commodity.id].currentPrice = 
-    Math.round(markets[station.id][commodity.id].currentPrice * multiplier);
+    Math.max(1, Math.round(markets[station.id][commodity.id].currentPrice * multiplier));
   
   const duration = randomInt(CONSTANTS.SPIKE_DROP_DURATION_MIN, CONSTANTS.SPIKE_DROP_DURATION_MAX);
   
@@ -731,7 +664,7 @@ function generateStationBoom(markets, activeEvents, stationInventories, tick) {
   availableIds.forEach(commodityId => {
     if (markets[station.id]?.[commodityId]) {
       markets[station.id][commodityId].currentPrice = 
-        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+        Math.max(1, Math.round(markets[station.id][commodityId].currentPrice * multiplier));
     }
   });
   
@@ -764,7 +697,7 @@ function generateStationRecession(markets, activeEvents, stationInventories, tic
   availableIds.forEach(commodityId => {
     if (markets[station.id]?.[commodityId]) {
       markets[station.id][commodityId].currentPrice = 
-        Math.round(markets[station.id][commodityId].currentPrice * multiplier);
+        Math.max(1, Math.round(markets[station.id][commodityId].currentPrice * multiplier));
     }
   });
   
@@ -853,15 +786,19 @@ export function buyCommodity(player, markets, commodityId, quantity) {
   }
   newPlayer.cargoUsed += quantity;
   
-  // Increase price at current station
-  market.currentPrice = Math.round(market.currentPrice * (1 + CONSTANTS.PLAYER_BUY_PRICE_INCREASE));
+  // Increase price at current station (hybrid: % or min 1cr, whichever is higher)
+  const buyPercentChange = market.currentPrice * CONSTANTS.PLAYER_BUY_PRICE_INCREASE;
+  const buyActualChange = Math.max(buyPercentChange, CONSTANTS.MIN_PRICE_CHANGE);
+  market.currentPrice = Math.max(1, Math.round(market.currentPrice + buyActualChange));
   
   // Decrease price at connected stations (only if they sell this commodity)
   const connectedStations = getConnectedStations(currentStation.id);
   connectedStations.forEach(stationId => {
     if (newMarkets[stationId] && newMarkets[stationId][commodityId] && newMarkets[stationId][commodityId].currentPrice !== undefined) {
+      const adjPercentChange = newMarkets[stationId][commodityId].currentPrice * CONSTANTS.ADJACENT_PRICE_CHANGE;
+      const adjActualChange = Math.max(adjPercentChange, CONSTANTS.MIN_PRICE_CHANGE);
       newMarkets[stationId][commodityId].currentPrice = 
-        Math.round(newMarkets[stationId][commodityId].currentPrice * (1 - CONSTANTS.ADJACENT_PRICE_CHANGE));
+        Math.max(1, Math.round(newMarkets[stationId][commodityId].currentPrice - adjActualChange));
     }
   });
   
@@ -932,15 +869,19 @@ export function sellCommodity(player, markets, commodityId, quantity) {
   }
   newPlayer.cargoUsed -= quantity;
   
-  // Decrease price at current station
-  market.currentPrice = Math.round(market.currentPrice * (1 - CONSTANTS.PLAYER_SELL_PRICE_DECREASE));
+  // Decrease price at current station (hybrid: % or min 1cr, whichever is higher)
+  const sellPercentChange = market.currentPrice * CONSTANTS.PLAYER_SELL_PRICE_DECREASE;
+  const sellActualChange = Math.max(sellPercentChange, CONSTANTS.MIN_PRICE_CHANGE);
+  market.currentPrice = Math.max(1, Math.round(market.currentPrice - sellActualChange));
   
   // Increase price at connected stations (only if they sell this commodity)
   const connectedStations = getConnectedStations(currentStation.id);
   connectedStations.forEach(stationId => {
     if (newMarkets[stationId] && newMarkets[stationId][commodityId] && newMarkets[stationId][commodityId].currentPrice !== undefined) {
+      const adjPercentChange = newMarkets[stationId][commodityId].currentPrice * CONSTANTS.ADJACENT_PRICE_CHANGE;
+      const adjActualChange = Math.max(adjPercentChange, CONSTANTS.MIN_PRICE_CHANGE);
       newMarkets[stationId][commodityId].currentPrice = 
-        Math.round(newMarkets[stationId][commodityId].currentPrice * (1 + CONSTANTS.ADJACENT_PRICE_CHANGE));
+        Math.max(1, Math.round(newMarkets[stationId][commodityId].currentPrice + adjActualChange));
     }
   });
   
@@ -1745,9 +1686,15 @@ export function acceptLoot(player, combatState) {
   
   const loot = combatState.pendingLoot;
   if (!newPlayer.cargo[loot.commodityId]) {
-    newPlayer.cargo[loot.commodityId] = 0;
+    newPlayer.cargo[loot.commodityId] = { quantity: 0, avgBuyPrice: 0 };
   }
-  newPlayer.cargo[loot.commodityId] += loot.amount;
+  const existingCargo = typeof newPlayer.cargo[loot.commodityId] === 'number'
+    ? { quantity: newPlayer.cargo[loot.commodityId], avgBuyPrice: 0 }
+    : newPlayer.cargo[loot.commodityId];
+  newPlayer.cargo[loot.commodityId] = {
+    quantity: existingCargo.quantity + loot.amount,
+    avgBuyPrice: existingCargo.avgBuyPrice
+  };
   newPlayer.cargoUsed += loot.amount;
   
   return { 
@@ -1891,17 +1838,11 @@ export function checkDeath(player) {
 export function respawn(player) {
   const newPlayer = deepClone(player);
   
-  // Respawn at a random station
-  const randomStation = STATIONS[Math.floor(Math.random() * STATIONS.length)];
-  
-  // Check if player died in combat (activeCombat still exists)
   const diedInCombat = newPlayer.activeCombat !== null;
   
   if (diedInCombat) {
-    // Killed in combat - respawn with starting credits
     newPlayer.credits = CONSTANTS.STARTING_CREDITS;
   } else {
-    // Died from other causes (e.g., desperate work) - use retention mechanic
     const retainedCredits = Math.floor(newPlayer.credits * CONSTANTS.DEATH_CREDIT_RETENTION);
     const finalCredits = Math.max(retainedCredits, CONSTANTS.RESPAWN_SHIP_COST);
     
@@ -1922,16 +1863,13 @@ export function respawn(player) {
   newPlayer.cargoUsed = 0;
   newPlayer.cargo = {};
   newPlayer.upgrades = { cargo: 0, hull: 0, weapon: 0 };
-  newPlayer.location = randomStation.id;
+  newPlayer.location = 'caveat_emptor';
   newPlayer.activeCombat = null;
   
-  // Void bounty on death (reset to 0)
   if (newPlayer.reputation) {
     newPlayer.reputation.currentBounty = 0;
   }
   
-  // Preserve bank account balance (death protection)
-  // Bank account is NOT reset on respawn - banked credits are safe
   if (!newPlayer.bankAccount) {
     newPlayer.bankAccount = {
       balance: 0,
@@ -1944,7 +1882,7 @@ export function respawn(player) {
     success: true,
     playerState: newPlayer, 
     gameOver: false, 
-    respawnLocation: randomStation.name 
+    respawnLocation: 'Caveat Emptor' 
   };
 }
 
@@ -1999,14 +1937,20 @@ export function loseRandomCargo(player, amount) {
   
   while (remaining > 0 && cargoItems.length > 0) {
     const randomItem = randomChoice(cargoItems);
-    const available = player.cargo[randomItem];
+    const cargoData = player.cargo[randomItem];
+    const available = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
     const toLose = Math.min(remaining, available);
     
-    player.cargo[randomItem] -= toLose;
+    if (typeof cargoData === 'number') {
+      player.cargo[randomItem] -= toLose;
+    } else {
+      player.cargo[randomItem].quantity -= toLose;
+    }
     player.cargoUsed -= toLose;
     remaining -= toLose;
     
-    if (player.cargo[randomItem] <= 0) {
+    const newQuantity = typeof cargoData === 'number' ? player.cargo[randomItem] : player.cargo[randomItem]?.quantity;
+    if (!newQuantity || newQuantity <= 0) {
       delete player.cargo[randomItem];
       cargoItems.splice(cargoItems.indexOf(randomItem), 1);
     }
@@ -2020,7 +1964,8 @@ export function calculateContrabandValue(player, markets) {
   Object.keys(player.cargo).forEach(commodityId => {
     const commodity = COMMODITIES.find(c => c.id === commodityId);
     if (commodity.contraband) {
-      const quantity = player.cargo[commodityId];
+      const cargoData = player.cargo[commodityId];
+      const quantity = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
       // If markets not provided (during combat init), use base price
       const price = markets[currentStation?.id]?.[commodityId]?.currentPrice || commodity.basePrice;
       total += quantity * price;
@@ -2037,7 +1982,8 @@ export function calculateTotalCargoValue(player, markets) {
   
   Object.keys(player.cargo).forEach(commodityId => {
     const commodity = COMMODITIES.find(c => c.id === commodityId);
-    const quantity = player.cargo[commodityId];
+    const cargoData = player.cargo[commodityId];
+    const quantity = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
     // If markets not provided (during combat init), use base price
     const price = markets[currentStation?.id]?.[commodityId]?.currentPrice || commodity.basePrice;
     total += quantity * price;
@@ -2063,7 +2009,8 @@ export function removeAllContraband(player) {
   Object.keys(player.cargo).forEach(commodityId => {
     const commodity = COMMODITIES.find(c => c.id === commodityId);
     if (commodity.contraband) {
-      const quantity = player.cargo[commodityId];
+      const cargoData = player.cargo[commodityId];
+      const quantity = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
       player.cargoUsed -= quantity;
       delete player.cargo[commodityId];
     }
@@ -2098,7 +2045,8 @@ export function calculateNetWorth(player, markets) {
   const currentStation = STATIONS.find(s => s.id === player.location);
   if (currentStation && markets && markets[currentStation.id]) {
     Object.keys(player.cargo).forEach(commodityId => {
-      const quantity = player.cargo[commodityId];
+      const cargoData = player.cargo[commodityId];
+      const quantity = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
       if (markets[currentStation.id][commodityId]) {
         const price = markets[currentStation.id][commodityId].currentPrice;
         worth += quantity * price;

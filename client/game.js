@@ -122,7 +122,8 @@ function calculateCargoValue() {
   if (!currentMarket) return 0;
   
   Object.keys(playerState.cargo).forEach(commodityId => {
-    const quantity = playerState.cargo[commodityId];
+    const cargoData = playerState.cargo[commodityId];
+    const quantity = typeof cargoData === 'number' ? cargoData : (cargoData?.quantity || 0);
     const marketData = currentMarket[commodityId];
     if (marketData) {
       total += quantity * marketData.currentPrice;
@@ -144,11 +145,9 @@ function calculateTollFee(route) {
 
 // === INITIALIZATION ===
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize connection to server
+document.addEventListener('DOMContentLoaded', async () => {
   MP.initMultiplayer();
   
-  // Set up multiplayer callbacks
   MP.setCallbacks({
     onConnected: handleConnected,
     onDisconnected: handleDisconnected,
@@ -170,32 +169,35 @@ document.addEventListener('DOMContentLoaded', () => {
     onPvpEscaped: handlePvpEscaped
   });
   
-  // Set up login screen
+  const storedPlayerId = MP.getStoredPlayerId();
+  if (storedPlayerId) {
+    try {
+      await MP.reconnect(storedPlayerId);
+    } catch (error) {
+      console.log('Reconnect failed:', error.message);
+      MP.clearStoredPlayerId();
+    }
+  }
+  
   setupLoginScreen();
   
-  // Start tick timer update loop
   setInterval(updateTickTimer, 1000);
   
-  // Update leaderboard every 5 seconds
   setInterval(() => {
     if (playerState && gameState) {
       updateLeaderboard();
     }
   }, 5000);
   
-  // Initialize debug panel
   initializeDebugPanel();
   
-  // Initialize draggable modals
   initDraggableModals();
   
-  // Set up inventory button
   const inventoryBtn = document.getElementById('inventory-btn');
   if (inventoryBtn) {
     inventoryBtn.addEventListener('click', () => showInventoryModal());
   }
   
-  // Set up inventory modal close button
   const inventoryClose = document.getElementById('inventory-close');
   if (inventoryClose) {
     inventoryClose.addEventListener('click', () => closeInventoryModal());
@@ -658,8 +660,6 @@ function renderMap(animateTravel = false) {
     'fort_attrition': 'img/icon_fort.svg',
     'caveat_emptor': 'img/icon_caveat.svg',
     'vice_berth': 'img/icon_vice.svg',
-    'disruptive_smelting': 'img/icon_disruptive.svg',
-    'nuevo_eden': 'img/icon_nuevo_eden.svg',
     'makinen_tanaka': 'img/icon_institute.svg',
     'cosmobank': 'img/icon_bank.svg'
   };
@@ -950,8 +950,6 @@ function renderStation() {
     'fort_attrition': 'img/icon_fort.svg',
     'caveat_emptor': 'img/icon_caveat.svg',
     'vice_berth': 'img/icon_vice.svg',
-    'disruptive_smelting': 'img/icon_disruptive.svg',
-    'nuevo_eden': 'img/icon_nuevo_eden.svg',
     'makinen_tanaka': 'img/icon_institute.svg',
     'cosmobank': 'img/icon_bank.svg'
   };
@@ -1109,6 +1107,21 @@ function renderStation() {
     
     priceCell.appendChild(priceWrapper);
     row.appendChild(priceCell);
+    
+    // NET PRESSURE column
+    const netCell = document.createElement('td');
+    const pressure = gameState.marketPressure?.[station.id]?.[commodity.id] || 0;
+    if (pressure > 0) {
+      netCell.textContent = `+${pressure}`;
+      netCell.style.color = '#17D773';
+    } else if (pressure < 0) {
+      netCell.textContent = pressure.toString();
+      netCell.style.color = '#FF5A41';
+    } else {
+      netCell.textContent = '0';
+      netCell.style.color = '#888';
+    }
+    row.appendChild(netCell);
     
     // HAVE column
     const haveCell = document.createElement('td');
@@ -1295,14 +1308,14 @@ function renderPlayersHere() {
     
     playerDiv.appendChild(nameSpan);
     
-    // Always show attack button - no safe zones for PVP
-    const attackBtn = document.createElement('button');
-    attackBtn.textContent = 'ATTACK';
-    attackBtn.style.fontSize = '10px';
-    attackBtn.style.padding = '2px 8px';
-    attackBtn.className = 'warning';
-    attackBtn.onclick = () => attackPlayer(player.socketId, player.name);
-    playerDiv.appendChild(attackBtn);
+    // PVP disabled
+    // const attackBtn = document.createElement('button');
+    // attackBtn.textContent = 'ATTACK';
+    // attackBtn.style.fontSize = '10px';
+    // attackBtn.style.padding = '2px 8px';
+    // attackBtn.className = 'warning';
+    // attackBtn.onclick = () => attackPlayer(player.socketId, player.name);
+    // playerDiv.appendChild(attackBtn);
     
     playersHereList.appendChild(playerDiv);
   });
@@ -1501,7 +1514,8 @@ async function updateTickTimer() {
 async function buyCommodity(commodityId, quantity) {
   try {
     await MP.buyCommodity(commodityId, quantity);
-    // Activity feed will show this action
+    renderStation();
+    renderStatus();
   } catch (error) {
     console.error('Buy error:', error);
     addLog(error.message || String(error) || 'Unknown error', 'danger');
@@ -1511,7 +1525,8 @@ async function buyCommodity(commodityId, quantity) {
 async function sellCommodity(commodityId, quantity) {
   try {
     await MP.sellCommodity(commodityId, quantity);
-    // Activity feed will show this action
+    renderStation();
+    renderStatus();
   } catch (error) {
     console.error('Sell error:', error);
     addLog(error.message || String(error) || 'Unknown error', 'danger');
@@ -1863,9 +1878,9 @@ function showDeathModal() {
   const diedInCombat = playerState.activeCombat !== null;
   
   if (diedInCombat) {
-    stats.textContent = `You were destroyed in combat! You will respawn at a random station.`;
+    stats.textContent = `You were destroyed in combat! You will respawn at Caveat Emptor.`;
   } else {
-    stats.textContent = `You will respawn at a random station.`;
+    stats.textContent = `You will respawn at Caveat Emptor.`;
   }
   
   // Set up event handler

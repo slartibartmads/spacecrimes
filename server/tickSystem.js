@@ -1,24 +1,27 @@
 import { 
   getServerState, 
   incrementTick, 
+  getCurrentTick,
   updateMarkets, 
   updateActiveEvents,
   resetTickState,
   haveAllPlayersTraveled,
   getTimeSinceLastTick,
   getActivePlayerCount,
-  updatePlayer
+  updatePlayer,
+  pruneMarketPressure,
+  getAllMarketPressure
 } from './gameState.js';
 import { processTick } from './gameLogic.js';
 
 /**
  * Tick System Configuration
- * - MIN_TICK_INTERVAL: Minimum time (ms) before tick can advance (5 seconds)
- * - MAX_TICK_INTERVAL: Maximum time (ms) before tick auto-advances (5 seconds)
+ * - MIN_TICK_INTERVAL: Minimum time (ms) before tick can advance (60 seconds)
+ * - MAX_TICK_INTERVAL: Maximum time (ms) before tick auto-advances (60 seconds)
  * - CHECK_INTERVAL: How often to check if tick should advance (1 second)
  */
-const MIN_TICK_INTERVAL = 5 * 1000;  // 5 seconds
-const MAX_TICK_INTERVAL = 5 * 1000;  // 5 seconds
+const MIN_TICK_INTERVAL = 60 * 1000;  // 60 seconds
+const MAX_TICK_INTERVAL = 60 * 1000;  // 60 seconds
 const CHECK_INTERVAL = 1000;          // 1 second
 
 let tickTimer = null;
@@ -114,6 +117,12 @@ function advanceTick() {
   updateActiveEvents(tickResult.activeEvents);
   const newTick = incrementTick();
   
+  // Prune old market pressure data (keep last 50 ticks)
+  pruneMarketPressure(newTick, 50);
+  
+  // Get current market pressure for broadcast
+  const marketPressure = getAllMarketPressure(newTick, 50);
+  
   // Apply event effects to all players
   applyEventEffectsToPlayers(tickResult.newEvent);
   
@@ -130,7 +139,8 @@ function advanceTick() {
       markets: tickResult.markets,
       activeEvents: tickResult.activeEvents,
       newEvent: tickResult.newEvent,
-      expiredEvents: tickResult.expiredEvents
+      expiredEvents: tickResult.expiredEvents,
+      marketPressure
     });
     
     console.log(`Tick ${newTick} broadcasted to ${getActivePlayerCount()} players`);

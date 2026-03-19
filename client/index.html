@@ -8,6 +8,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700;900&family=Workbench&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    @font-face {
+      font-family: 'SymbolsNerdFont';
+      src: url('https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    .nerd-icon {
+      font-family: 'SymbolsNerdFont', monospace;
+    }
+  </style>
 </head>
 <body>
   <!-- LOGIN SCREEN -->
@@ -85,6 +97,7 @@
             <tr>
               <th>COMMODITY</th>
               <th>BUY/SELL PRICE</th>
+              <th>NET <span class="nerd-icon" title="Net buying pressure (last 50 ticks). + = more buying, - = more selling" style="cursor:help;font-size:14px;opacity:0.7;">&#xea74;</span></th>
               <th>INV</th>
               <th>ACTION</th>
             </tr>

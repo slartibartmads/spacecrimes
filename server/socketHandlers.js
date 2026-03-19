@@ -1,8 +1,10 @@
 import {
   getServerState,
   addPlayer,
-  removePlayer,
+  markPlayerDisconnected,
+  reconnectPlayer,
   getPlayer,
+  getPlayerByPlayerId,
   updatePlayer,
   updateMarkets,
   addActivity,
@@ -10,7 +12,10 @@ import {
   getAllPublicPlayerInfo,
   getPublicPlayerInfo,
   markPlayerTraveled,
-  hasPlayerTraveled
+  hasPlayerTraveled,
+  recordMarketPressure,
+  getCurrentTick,
+  getAllMarketPressure
 } from './gameState.js';
 import {
   createPlayerState,
@@ -238,6 +243,10 @@ export function setupSocketHandlers(io) {
       handleJoin(socket, data, callback, io);
     });
     
+    socket.on('reconnect', (data, callback) => {
+      handleReconnect(socket, data, callback, io);
+    });
+    
     // Trading actions
     socket.on('buy', (data, callback) => {
       handleBuy(socket, data, callback, io);
@@ -340,39 +349,86 @@ function handleJoin(socket, data, callback, io) {
   
   const state = getServerState();
   
-  // Create new player
   const playerState = createPlayerState(username.trim());
-  addPlayer(socket.id, playerState);
+  addPlayer(socket.id, playerState.playerId, playerState);
   
-  // Send initial state to player
+  const marketPressure = getAllMarketPressure(state.tick, 50);
   callback({
     success: true,
     playerState: getPlayer(socket.id),
+    playerId: playerState.playerId,
     markets: state.markets,
     stationInventories: state.stationInventories,
     activeEvents: state.activeEvents,
     tick: state.tick,
-    players: getAllPublicPlayerInfo()
+    players: getAllPublicPlayerInfo(),
+    marketPressure
   });
   
-  // Broadcast to all other players that new player joined
   socket.broadcast.emit('playerJoined', {
     player: getPublicPlayerInfo(socket.id)
   });
   
-  // Add to activity feed
   addActivity({
     type: 'join',
     playerName: username.trim(),
     message: `${username.trim()} entered the system`
   });
   
-  // Broadcast activity update
   io.emit('activityUpdate', {
     activities: state.recentActivity
   });
   
-  console.log(`Player joined: ${username.trim()} (${socket.id})`);
+  console.log(`Player joined: ${username.trim()} (${playerState.playerId})`);
+}
+
+function handleReconnect(socket, data, callback, io) {
+  const { playerId } = data;
+  
+  if (!playerId) {
+    callback({ success: false, error: 'Player ID required' });
+    return;
+  }
+  
+  const player = getPlayerByPlayerId(playerId);
+  
+  if (!player) {
+    callback({ success: false, error: 'Session not found' });
+    return;
+  }
+  
+  const state = getServerState();
+  
+  reconnectPlayer(playerId, socket.id);
+  
+  const marketPressure = getAllMarketPressure(state.tick, 50);
+  callback({
+    success: true,
+    playerState: getPlayer(socket.id),
+    playerId: playerId,
+    markets: state.markets,
+    stationInventories: state.stationInventories,
+    activeEvents: state.activeEvents,
+    tick: state.tick,
+    players: getAllPublicPlayerInfo(),
+    marketPressure
+  });
+  
+  socket.broadcast.emit('playerJoined', {
+    player: getPublicPlayerInfo(socket.id)
+  });
+  
+  addActivity({
+    type: 'join',
+    playerName: player.name,
+    message: `${player.name} returned to the system`
+  });
+  
+  io.emit('activityUpdate', {
+    activities: state.recentActivity
+  });
+  
+  console.log(`Player reconnected: ${player.name} (${playerId})`);
 }
 
 /**
@@ -403,10 +459,17 @@ function handleBuy(socket, data, callback, io) {
     updatePlayer(socket.id, result.playerState);
     updateMarkets(result.markets);
     
+    // Record market pressure (buying = positive pressure)
+    const tick = getCurrentTick();
+    recordMarketPressure(player.location, commodity, quantity, tick);
+    
+    // Get updated pressure for this station
+    const stationPressure = getAllMarketPressure(tick, 50);
+    
     // Don't log buy transactions to activity feed (too noisy)
     
     // Broadcast updates
-    io.emit('marketUpdate', { markets: result.markets });
+    io.emit('marketUpdate', { markets: result.markets, marketPressure: stationPressure });
     io.emit('playerUpdate', { 
       socketId: socket.id, 
       player: getPublicPlayerInfo(socket.id) 
@@ -416,7 +479,8 @@ function handleBuy(socket, data, callback, io) {
     callback({ 
       success: true, 
       playerState: getPlayer(socket.id),
-      markets: result.markets
+      markets: result.markets,
+      marketPressure: stationPressure
     });
     
     // Try to advance tick
@@ -451,10 +515,17 @@ function handleSell(socket, data, callback, io) {
   updatePlayer(socket.id, result.playerState);
   updateMarkets(result.markets);
   
+  // Record market pressure (selling = negative pressure)
+  const tick = getCurrentTick();
+  recordMarketPressure(player.location, commodity, -quantity, tick);
+  
+  // Get updated pressure for this station
+  const stationPressure = getAllMarketPressure(tick, 50);
+  
   // Don't log sell transactions to activity feed (too noisy)
   
   // Broadcast updates
-  io.emit('marketUpdate', { markets: result.markets });
+  io.emit('marketUpdate', { markets: result.markets, marketPressure: stationPressure });
   io.emit('playerUpdate', { 
     socketId: socket.id, 
     player: getPublicPlayerInfo(socket.id) 
@@ -463,7 +534,8 @@ function handleSell(socket, data, callback, io) {
   callback({ 
     success: true, 
     playerState: getPlayer(socket.id),
-    markets: result.markets
+    markets: result.markets,
+    marketPressure: stationPressure
   });
   
   // Try to advance tick
@@ -1407,7 +1479,6 @@ function handleDisconnect(socket, io) {
   const player = getPlayer(socket.id);
   
   if (player) {
-    // If player was in PVP combat, clear opponent's combat state
     if (player.activeCombat && player.activeCombat.enemyType === 'player') {
       const opponentId = player.activeCombat.opponentSocketId;
       const opponent = getPlayer(opponentId);
@@ -1415,7 +1486,6 @@ function handleDisconnect(socket, io) {
         opponent.activeCombat = null;
         updatePlayer(opponentId, opponent);
         
-        // Notify opponent
         io.to(opponentId).emit('pvpEscaped', {
           escapee: player.name,
           reason: 'disconnected'
@@ -1423,21 +1493,18 @@ function handleDisconnect(socket, io) {
       }
     }
     
-    // Add to activity
     addActivity({
       type: 'leave',
       playerName: player.name,
       message: `${player.name} left the system`
     });
     
-    // Remove player
-    removePlayer(socket.id);
+    markPlayerDisconnected(socket.id);
     
-    // Broadcast to all players
     io.emit('playerLeft', { socketId: socket.id });
     io.emit('activityUpdate', { activities: getServerState().recentActivity });
     
-    console.log(`Player disconnected: ${player.name} (${socket.id})`);
+    console.log(`Player disconnected: ${player.name} (${player.playerId})`);
   } else {
     console.log(`Client disconnected: ${socket.id}`);
   }
@@ -1447,6 +1514,9 @@ function handleDisconnect(socket, io) {
  * Handle attack player
  */
 function handleAttackPlayer(socket, data, callback, io) {
+  // PVP disabled
+  return callback({ success: false, error: 'PVP is currently disabled' });
+  
   const { targetSocketId } = data;
   const attacker = getPlayer(socket.id);
   const defender = getPlayer(targetSocketId);
